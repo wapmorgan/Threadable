@@ -1,4 +1,18 @@
 {
+    "name": "wapmorgan/threadable",
+    "description": "Easy-to-use threading library providing all basic features to run your code in parallel mode",
+    "keywords": ["threads", "threading", "parallel"],
+    "authors": [
+        {
+            "name": "Sergey Vanyushin",
+            "email": "wapmorgan@gmail.com",
+            "role": "developer"
+        }
+    ],
+    "require": {
+        "ext-posix": "*",
+        "ext-pcntl": "*"
+    },
     "autoload": {
         "psr-4": {
             "wapmorgan\\Threadable\\": "src/"
