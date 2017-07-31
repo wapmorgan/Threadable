@@ -1,0 +1,31 @@
+#!/usr/bin/env php
+<?php
+use wapmorgan\Threadable\Worker;
+use wapmorgan\Threadable\WorkerPool;
+require_once __DIR__.'/../vendor/autoload.php';
+
+pcntl_signal(SIGUSR1, function () {});
+pcntl_signal(SIGUSR2, function () {});
+
+$worker = new Worker();
+$worker->start();
+$worker->sendPayload([123]);
+echo $worker->getPid().' state:'.$worker->state.PHP_EOL;
+
+while ($worker->state != Worker::TERMINATED) {
+    // echo $worker->getPid().' state:'.$worker->state.PHP_EOL;
+    if ($worker->state == Worker::RUNNING) {
+        echo 'Running. Keep waiting...'.PHP_EOL;
+        $worker->checkForFinish();
+        sleep(1);
+    } else if ($worker->state == Worker::IDLE) {
+        echo 'Ended. Stopping worker...'.PHP_EOL;
+        $worker->stop();
+        sleep(1);
+    } else if ($worker->state == Worker::TERMINATING) {
+        echo 'Wait for terminating ...'.PHP_EOL;
+        $worker->checkForTermination();
+        sleep(1);
+    }
+}
+echo 'Child terminated.'.PHP_EOL;
