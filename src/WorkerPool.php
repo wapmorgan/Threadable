@@ -124,4 +124,10 @@ class WorkerPool
 
         }
     }
+
+    protected function emitNewWorker()
+    {
+        $class_name = $this->class;
+        $this->workers = new $class_name();
+    }
 }

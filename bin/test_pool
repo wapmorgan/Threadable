@@ -1,0 +1,16 @@
+#!/usr/bin/env php
+<?php
+use wapmorgan\Threadable\Worker;
+use wapmorgan\Threadable\WorkerPool;
+require_once __DIR__.'/../vendor/autoload.php';
+
+$pool = new WorkerPool('wapmorgan\Threadable\Worker');
+$pool->setPoolSize(4);
+
+var_dump($pool->countFreeWorkers());
+var_dump($pool->countIdleWorkers());
+
+$pool->sendData([123]);
+
+var_dump($pool->countFreeWorkers());
+var_dump($pool->countIdleWorkers());
