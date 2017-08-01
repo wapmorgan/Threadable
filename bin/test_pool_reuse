@@ -6,22 +6,20 @@ require_once __DIR__.'/../vendor/autoload.php';
 
 class SimpleWorkerWithVariableDelay extends Worker
 {
-    public function onPayload($seconds)
+    public function onPayload($seconds, $i)
     {
-        echo 'Sleeping for '.$seconds.' sec'.PHP_EOL;
-        sleep($seconds);
+        echo getmypid().' is sleeping for '.$seconds.' sec [iteration '.$i.']'.PHP_EOL;
+        sleep($seconds * 2);
         echo 'Waking up'.PHP_EOL;
     }
 }
 
 $pool = new WorkerPool('SimpleWorkerWithVariableDelay');
-$pool->setPoolSize(4);
+$pool->setPoolSize(1);
 $pool->enableDataOverhead();
 
-for ($i = 0; $i < 9; $i++)
-    $pool->sendData([rand(2, 5)]);
-
-var_dump($pool->getWorkers());
+for ($i = 0; $i < 3; $i++)
+    $pool->sendData([$i + 3, $i]);
 
 $pool->waitToFinish([
     '0.5' => function (WorkerPool $pool) {

@@ -8,7 +8,7 @@ class SimpleWorkerWithVariableDelay extends Worker
 {
     public function onPayload($seconds)
     {
-        echo 'Sleeping for '.$seconds.' sec'.PHP_EOL;
+        echo getmypid().' is sleeping for '.$seconds.' sec'.PHP_EOL;
         sleep($seconds);
         echo 'Waking up'.PHP_EOL;
     }
@@ -18,10 +18,10 @@ $pool = new WorkerPool('SimpleWorkerWithVariableDelay');
 $pool->setPoolSize(4);
 $pool->enableDataOverhead();
 
-for ($i = 0; $i < 9; $i++)
-    $pool->sendData([rand(2, 5)]);
+for ($i = 0; $i < 12; $i++)
+    $pool->sendData([12 - $i]);
 
-var_dump($pool->getWorkers());
+var_dump($pool->getOverheadCounters());
 
 $pool->waitToFinish([
     '0.5' => function (WorkerPool $pool) {

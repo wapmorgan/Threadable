@@ -24,6 +24,8 @@ class WorkerPool
     protected $currentSize = 0;
     protected $newSize = 0;
     protected $workers = [];
+    protected $dataOverhead = false;
+    protected $overheadCounters = [];
     /**
      * @var integer Milliseconds between checks for free workers
      */
@@ -38,6 +40,12 @@ class WorkerPool
         pcntl_signal(SIGUSR2, [$this, 'onSigUsr2']);
         pcntl_signal(SIGUSR1, [$this, 'onSigUsr1']);
         pcntl_signal(SIGCHLD, [$this, 'onSigChld']);
+    }
+
+    public function __destruct()
+    {
+        foreach ($this->workers as $worker)
+            $worker->stop();
     }
 
     public function setPoolSize($newSize)
@@ -73,13 +81,18 @@ class WorkerPool
         return $i;
     }
 
+    public function enableDataOverhead()
+    {
+        $this->dataOverhead = true;
+    }
+
     /**
      * @return null|boolean Null if not free workers available and $wait = false.
      */
     public function sendData($data, $wait = false)
     {
         $this->checkSize(true);
-        if ($this->countIdleWorkers() === 0) {
+        if ($this->countIdleWorkers() === 0 && !$this->dataOverhead) {
             if (!$wait)
                 return null;
             else {
@@ -89,9 +102,22 @@ class WorkerPool
             }
         }
 
-        foreach ($this->workers as $worker) {
+        foreach ($this->workers as $i => $worker) {
             if ($worker->state == Worker::IDLE) {
+                if ($this->overheadCounters[$i] > 0)
+                    $this->overheadCounters[$i] = 0;
                 return $worker->sendPayload($data);
+            }
+        }
+
+        if ($this->dataOverhead) {
+            asort($this->overheadCounters);
+            foreach ($this->overheadCounters as $i => $counter) {
+                if ($this->workers[$i]->isActive()) {
+                    echo 'Sending overhead data to '.$this->workers[$i]->getPid().PHP_EOL;
+                    $this->overheadCounters[$i]++;
+                    return $this->workers[$i]->sendPayload($data);
+                }
             }
         }
     }
@@ -153,10 +179,9 @@ class WorkerPool
                         // echo 'Terminated worker '.$i.PHP_EOL;
                         $terminating--;
                         $done++;
-                        unset($this->workers[$i]);
+                        unset($this->workers[$i], $this->overheadCounters[$i]);
                     }
                 }
-                // var_dump($states);
             }
 
             if (!$waitIfNeeded)
@@ -171,6 +196,7 @@ class WorkerPool
     {
         $class_name = $this->class;
         ($this->workers[] = new $class_name($this))->start();
+        $this->overheadCounters[] = 0;
     }
 
     public function getWorkers()
@@ -200,5 +226,10 @@ class WorkerPool
 
             usleep(static::WAIT_UNIT_MILLITIME * 1000);
         }
+    }
+
+    public function getOverheadCounters()
+    {
+        return $this->overheadCounters;
     }
 }

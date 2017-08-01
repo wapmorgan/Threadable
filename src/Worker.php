@@ -20,6 +20,7 @@ class Worker
     public $state = self::IDLE;
     protected $pid;
     protected $toChild;
+    protected $dataCounter = 0;
 
     /**
      * Time between checks for new payload from parent
@@ -113,19 +114,37 @@ class Worker
         return $this->state == self::RUNNING;
     }
 
+    /**
+     * @return boolean Returns whether worker is in idle state.
+     */
+    public function isIdle()
+    {
+        return $this->state == self::IDLE;
+    }
+
+    /**
+     * @return boolean Returns whether worker is active right now (running or idle).
+     */
+    public function isActive()
+    {
+        return in_array($this->state, [self::RUNNING, self::IDLE]);
+    }
+
     public function checkForFinish()
     {
         if (strlen($msg_size_bytes = socket_read($this->toChild, 4)) === 4) {
             $data = unpack('N', $msg_size_bytes);
             $msg_size = $data[1];
-            // echo 'Msg size: '.$msg_size.PHP_EOL;
+            // echo '[Finish] Msg size: '.$msg_size.PHP_EOL;
 
             $msg = socket_read($this->toChild, $msg_size);
             $data = unserialize($msg);
-            // echo 'Msg: '.print_r($msg, true).PHP_EOL;
+            // echo '[Finish] Msg: '.print_r($msg, true).PHP_EOL;
+            $this->dataCounter--;
 
-            // mark as idle
-            $this->state = self::IDLE;
+            // mark as idle only if this last payload
+            if ($this->dataCounter === 0)
+                $this->state = self::IDLE;
             return true;
         }
         return null;
@@ -151,6 +170,8 @@ class Worker
      */
     public function sendPayload($data)
     {
+        $this->dataCounter++;
+        // echo 'It is '.$this->dataCounter.' payload for '.$this->pid.PHP_EOL;
         $this->state = self::RUNNING;
 
         $data = serialize($data);
@@ -199,12 +220,15 @@ class Worker
             $msg = socket_read($this->toParent, $msg_size);
             $data = unserialize($msg);
 
+            // echo '[Payload] Msg('.$msg_size.'): '.$msg.PHP_EOL;
+
             // launch worker to do it's work
             $result = call_user_func_array([$this, 'onPayload'], $data);
             $data = serialize($result);
 
             // write result to socket
             socket_write($this->toParent, pack('N', strlen($data)));
+            // echo '[Finish] Msg('.strlen($data).'): '.$data.PHP_EOL;
             socket_write($this->toParent, $data);
 
             // send SIGUSR1 to parent to indicate that's we've finished

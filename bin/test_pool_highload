@@ -4,24 +4,26 @@ use wapmorgan\Threadable\Worker;
 use wapmorgan\Threadable\WorkerPool;
 require_once __DIR__.'/../vendor/autoload.php';
 
-class SimpleWorkerWithVariableDelay extends Worker
+class CpuEatingWorker extends Worker
 {
-    public function onPayload($seconds)
+    public function onPayload($i)
     {
-        echo 'Sleeping for '.$seconds.' sec'.PHP_EOL;
-        sleep($seconds);
-        echo 'Waking up'.PHP_EOL;
+        echo 'new iteration '.$i.PHP_EOL;
+        $till = microtime(true) + 5;
+        while (microtime(true) < $till) {
+
+        }
     }
 }
 
-$pool = new WorkerPool('SimpleWorkerWithVariableDelay');
+$pool = new WorkerPool('CpuEatingWorker');
 $pool->setPoolSize(4);
 $pool->enableDataOverhead();
 
-for ($i = 0; $i < 9; $i++)
-    $pool->sendData([rand(2, 5)]);
+for ($i = 0; $i < 12; $i++)
+    $pool->sendData([$i]);
 
-var_dump($pool->getWorkers());
+var_dump($pool->getOverheadCounters());
 
 $pool->waitToFinish([
     '0.5' => function (WorkerPool $pool) {

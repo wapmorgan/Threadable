@@ -1,0 +1,52 @@
+#!/usr/bin/env php
+<?php
+use wapmorgan\Threadable\Worker;
+use wapmorgan\Threadable\WorkerPool;
+require_once __DIR__.'/../vendor/autoload.php';
+
+pcntl_signal(SIGUSR1, function () {});
+pcntl_signal(SIGUSR2, function () {});
+
+class CpuEatingWorker extends Worker
+{
+    public function onPayload($abc)
+    {
+        echo 'new iteration'.PHP_EOL;
+        $till = microtime(true) + 5;
+        while (microtime(true) < $till) {
+
+        }
+    }
+}
+
+function waitUntilFinish(Worker $worker)
+{
+    while ($worker->state != Worker::IDLE) {
+        echo $worker->getPid().' state:'.$worker->state.PHP_EOL;
+        if ($worker->state == Worker::RUNNING) {
+            echo 'Running. Keep waiting...'.PHP_EOL;
+            $worker->checkForFinish();
+            sleep(1);
+        }
+    }
+}
+
+$worker = new CpuEatingWorker();
+$worker->start();
+$worker->sendPayload([123]);
+$worker->sendPayload([456]);
+$worker->sendPayload([789]);
+waitUntilFinish($worker);
+
+while ($worker->state != Worker::TERMINATED) {
+    if ($worker->state == Worker::IDLE) {
+        echo 'Ended. Stopping worker...'.PHP_EOL;
+        $worker->stop();
+        sleep(1);
+    } else if ($worker->state == Worker::TERMINATING) {
+        echo 'Wait for terminating ...'.PHP_EOL;
+        $worker->checkForTermination();
+        sleep(1);
+    }
+}
+echo 'Child terminated.'.PHP_EOL;
