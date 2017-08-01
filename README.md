@@ -207,7 +207,7 @@ $pool = new WorkerPool('DownloadWorker');
 // use only 2 workers (this is enough for our work)
 $pool->setPoolSize(2);
 
-// dispatch payload to workers. Notice! WorkerPool uses sendData() method instance of sendPayload().
+// dispatch payload to workers. Notice! WorkerPool uses sendData() method instead of sendPayload().
 foreach ($files as $file) {
     echo 'Enqueuing '.$file[0].' with size '.$file[1].PHP_EOL;
     $pool->sendData([$file]);
