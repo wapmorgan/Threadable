@@ -15,7 +15,7 @@ All you need to have installed: _pcntl_ and _posix_ extensions.
     - What is a `WorkersPool`?
 2. How to use
     - One worker
-    - Few workers with WorkerPool
+    - Few workers with `WorkerPool`
 3. API
     - `Worker` secrets and important methods
     - `WorkersPool` features
