@@ -3,6 +3,11 @@
 Easy-to-use threading library providing all basic features to run your code in parallel mode.
 All you need to have installed: _pcntl_ and _posix_ extensions.
 
+[![Composer package](http://xn--e1adiijbgl.xn--p1acf/badge/wapmorgan/threadable)](https://packagist.org/packages/wapmorgan/threadable)
+[![Latest Stable Version](https://poser.pugx.org/wapmorgan/threadable/v/stable)](https://packagist.org/packages/wapmorgan/threadable)
+[![Latest Unstable Version](https://poser.pugx.org/wapmorgan/threadable/v/unstable)](https://packagist.org/packages/wapmorgan/threadable)
+[![License](https://poser.pugx.org/wapmorgan/threadable/license)](https://packagist.org/packages/wapmorgan/threadable)
+
 # Structure
 ## What is a Threadable?
 **Threadable** - is a trait for adding fork'ing functionality to any class. It's used in `Worker` class.
@@ -32,7 +37,7 @@ class SleepingWorker extends Worker
 ```
 
 ## What is a WorkersPool?
-**WorkersPool** - is a container for `Worker`'s, intended for handling similar tasks.
+**WorkersPool** (_wapmorgan\Threadable\WorkersPool_) - is a container for `Worker`'s, intended for handling similar tasks.
 It takes care of all maintenance, payload dispatching and life-cycle of workers. Allows you change the size of the pool dynamically and other useful stuff.
 
 # How to use
