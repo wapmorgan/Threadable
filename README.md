@@ -8,6 +8,18 @@ All you need to have installed: _pcntl_ and _posix_ extensions.
 [![Latest Unstable Version](https://poser.pugx.org/wapmorgan/threadable/v/unstable)](https://packagist.org/packages/wapmorgan/threadable)
 [![License](https://poser.pugx.org/wapmorgan/threadable/license)](https://packagist.org/packages/wapmorgan/threadable)
 
+1. Structure
+    - What is a `Threadable`?
+    - What is a `Worker`?
+        * How to create your Worker
+    - What is a `WorkersPool`?
+2. How to use
+    - One worker
+    - Few workers with WorkerPool
+3. API
+    - `Worker` secrets and important methods
+    - `WorkersPool` features
+
 # Structure
 ## What is a Threadable?
 **Threadable** - is a trait for adding fork'ing functionality to any class. It's used in `Worker` class.
@@ -42,7 +54,7 @@ It takes care of all maintenance, payload dispatching and life-cycle of workers.
 
 # How to use
 
-## Just Worker
+## One worker
 
 If you just need to parallel some work and do it in another thread, you can utilize just `Worker` class without any other dependencies. 
 
@@ -169,7 +181,7 @@ while ($worker->state == Worker::RUNNING) {
 $worker->stop(true);
 ```
 
-## Few threads with WorkerPool
+## Few workers with WorkerPool
 
 But what if you need do few jobs simultaneously? You can create few instances of your worker, but it will be pain in the a$$ to manipulate and synchronize them.
 In this case you can use `WorkerPool`, which takes care of following this:
