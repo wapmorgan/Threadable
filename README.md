@@ -32,7 +32,7 @@ All you need to have installed: _pcntl_ and _posix_ extensions.
 
 ### How to create your Worker
 
-The all you need it to inherit `Worker` class (full name is _wapmorgan\Threadable\Worker_) and redefine `onPayload(...$args)` public method.
+The all you need it to inherit `Worker` class (full name is _wapmorgan\Threadable\Worker_) and redefine `onPayload($data)` public method.
 
 For example:
 ```php
@@ -56,7 +56,7 @@ It takes care of all maintenance, payload dispatching and life-cycle of workers.
 
 ## One worker
 
-If you just need to parallel some work and do it in another thread, you can utilize just `Worker` class without any other dependencies. 
+If you just need to parallel some work and do it in another thread, you can utilize just `Worker` class without any other dependencies.
 
 To use it correctly you need to understand the life-cycle of worker:
 
@@ -125,11 +125,11 @@ foreach ($file_sources as $file_to_download) {
     $output = tempnam(sys_get_temp_dir(), 'thrd_test');
     $files[] = [$file_to_download, $file_size, $output];
 }
-``` 
+```
 
 **Real work**
 ```php
-// construct and start new worker 
+// construct and start new worker
 $worker = new DownloadWorker();
 $worker->start();
 // add files to work queue
@@ -140,22 +140,22 @@ foreach ($files as $file) {
 
 // main worker thread loop
 while ($worker->state !== Worker::TERMINATED) {
-    // Worker::RUNNING state indicates that worker thread is still working over some payload  
+    // Worker::RUNNING state indicates that worker thread is still working over some payload
     if ($worker->state == Worker::RUNNING) {
-    
+
         // prints status of all files
         show_status($files);
         // call check for finishing all tasks
         $worker->checkForFinish();
         usleep(500000);
-    } 
+    }
     // Worker::IDLE state indicates that worker thread does not have any work right now
     else if ($worker->state == Worker::IDLE) {
         echo 'Ended. Stopping worker...'.PHP_EOL;
         // we don't need worker anymore, just stop it
         $worker->stop();
         usleep(500000);
-    } 
+    }
     // Worker::TERMINATING state indicates that worker thread is going to be stopped and can't be used to process data
     else if ($worker->state == Worker::TERMINATING) {
         echo 'Wait for terminating ...'.PHP_EOL;
@@ -212,13 +212,13 @@ foreach ($files as $file) {
 }
 
 // register tracker, which should be launched every 0.5 seconds.
-// This method will hold the execution until all workers finish their work and go in Worker::IDLE state 
+// This method will hold the execution until all workers finish their work and go in Worker::IDLE state
 $pool->waitToFinish([
     '0.5' => function ($pool) use (&$files) {
         show_status($files);
     }]
 );
-``` 
+```
 
 As you can see, we got few improvements:
 
@@ -242,7 +242,7 @@ As you can see, we got few improvements:
 - `enableDataOverhead()` - enables _dataOverhead_-mode.
 - `sendData($data, $wait = false): null|boolean` - dispatches payload to any free worker. Behavior depends on _dataOverhead_ feature status:
     - When _dataOverhead_ is disabled and `$wait = false` (by default), this method returns `null` when no free workers available or `boolean` with status of dispatching (`true/false`).
-    - When _dataOverhead_ is disabled (by default) and `$wait = true`, this method will hold the execution of the script until any worker became free, dispatch your payload to it and return the status of dispatching (`true/false`). 
-    - When _dataOverhead_ is enabled, this method will dispatch your payload to any free worker. If there's not free workers, it will put new tasks in workers internal queues, which will be processed. This method uses fair distribution between all workers (so you can be sure that 24 tasks will be distributed between 6 workers as 4 per worker).         
+    - When _dataOverhead_ is disabled (by default) and `$wait = true`, this method will hold the execution of the script until any worker became free, dispatch your payload to it and return the status of dispatching (`true/false`).
+    - When _dataOverhead_ is enabled, this method will dispatch your payload to any free worker. If there's not free workers, it will put new tasks in workers internal queues, which will be processed. This method uses fair distribution between all workers (so you can be sure that 24 tasks will be distributed between 6 workers as 4 per worker).
 
 - `waitToFinish(array $trackers = null)`
