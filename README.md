@@ -21,6 +21,7 @@ All you need to have installed: _pcntl_ and _posix_ extensions.
     - `WorkersPool` features
 4. Predefined workers
     - `DownloadWorker`
+5. Use cases
 
 # Structure
 ## What is a Threadable?
