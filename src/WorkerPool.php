@@ -127,7 +127,7 @@ class WorkerPool
             asort($this->overheadCounters);
             foreach ($this->overheadCounters as $i => $counter) {
                 if ($this->workers[$i]->isActive()) {
-                    echo 'Sending overhead data to '.$this->workers[$i]->getPid().PHP_EOL;
+                    // echo 'Sending overhead data to '.$this->workers[$i]->getPid().PHP_EOL;
                     $this->overheadCounters[$i]++;
                     return $this->workers[$i]->sendPayload($data);
                 }
