@@ -19,6 +19,8 @@ All you need to have installed: _pcntl_ and _posix_ extensions.
 3. API
     - `Worker` secrets and important methods
     - `WorkersPool` features
+4. Predefined workers
+    - `DownloadWorker`
 
 # Structure
 ## What is a Threadable?
@@ -226,15 +228,15 @@ As you can see, we got few improvements:
 2. We can run as many workers as we need.
 3. We don't take care of worker termination anymore. Let WorkerPool do it for us.
 
-## API
-### Worker secrets and important methods
+# API
+## Worker secrets and important methods
 
 - `stop($wait = false)` - sends stop command to worker thread. It uses _SIGTERM_ signal to allow worker thread finish work correctly and don't lose any data. If `$wait = true`, holds the execution until the worker is down.
 - `kill($wait = false)` - sends stop command to worker thread. It uses _SIGKILL_ signal and not recommended except special cases, because it simply kills the worker thread and it loses all data being processed in that moment. If `$wait = true`, holds the execution until the worker is down.
 
 **Warning about worker re-using!** You can't restart a worker that has been terminated (with `stop()` or `kill()`), you need to create new worker and start it with `start()`.
 
-### WorkersPool features
+## WorkersPool features
 
 - `countIdleWorkers(): integer` - returns number of workers that are in `Worker::IDLE` state.
 - `countRunningWorkers(): integer` - returns number of workers that are in `Worker::RUNNING` state.
@@ -246,3 +248,15 @@ As you can see, we got few improvements:
     - When _dataOverhead_ is enabled, this method will dispatch your payload to any free worker. If there's not free workers, it will put new tasks in workers internal queues, which will be processed. This method uses fair distribution between all workers (so you can be sure that 24 tasks will be distributed between 6 workers as 4 per worker).
 
 - `waitToFinish(array $trackers = null)`
+
+# Predefined workers
+## DownloadWorker
+
+As you've seen in examples, we created a downloading worker. But there is no need for this, we could use predefined `DownloadWorker` which does the same.
+
+Full path: `wapmorgan\Threadable\DownloadWorker`
+Description: downloads remote file and saves it on local server.
+Payload:
+
+    - `source` - remote file url
+    - `targe` - local file path
