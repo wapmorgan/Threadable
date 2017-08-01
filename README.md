@@ -222,7 +222,7 @@ As you can see, we got few improvements:
 
 You can't restart a worker that has been terminated (with `stop()` or `kill()`), you need to create new worker and start it with `start()`.
 
-## WorkersPool features
+### WorkersPool features
 
 - `countIdleWorkers(): integer` - returns number of workers that are in `Worker::IDLE` state.
 - `countRunningWorkers(): integer` - returns number of workers that are in `Worker::RUNNING` state.
