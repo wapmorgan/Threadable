@@ -168,6 +168,19 @@ while ($worker->state !== Worker::TERMINATED) {
     }
 }
 ```
+_Result:_
+```sh
+Enqueuing https://yandex.ru/images/today?size=1920x1080 with size 343103
+Enqueuing http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip with size 52693477
+Started https://yandex.ru/images/today?size=1920x1080 into /tmp/thrd_test0Y3i3k
+Started http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip into /tmp/thrd_testrwwYiE
+https://yandex.ru/images/today?size=1920x1080 downloaded
+http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip downloading 28.89%
+http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip downloading 66.06%
+http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip downloaded
+Ended. Stopping worker...
+Wait for terminating ...
+```
 
 This code equipped with a lot of comments, but you can simplify this example if you don't need to re-use worker when all your work is done.
 You can replace this huge loop with a smaller one:
@@ -182,6 +195,20 @@ while ($worker->state == Worker::RUNNING) {
 }
 // when thread is in idle state, just stop right now (`true` as 1st argument forces it to send stop command and wait it termination).
 $worker->stop(true);
+```
+_Result:_
+```sh
+Enqueuing https://yandex.ru/images/today?size=1920x1080 with size 343103
+Enqueuing http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip with size 52693477
+Started https://yandex.ru/images/today?size=1920x1080 into /tmp/thrd_testbGsRBp
+Started http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip into /tmp/thrd_testv0E5Qy
+https://yandex.ru/images/today?size=1920x1080 downloaded
+http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip downloading 17.4%
+http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip downloading 36.82%
+http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip downloading 55.95%
+http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip downloading 76%
+http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip downloading 95.05%
+http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip downloaded
 ```
 
 ## Few workers with WorkerPool
@@ -221,6 +248,17 @@ $pool->waitToFinish([
         show_status($files);
     }]
 );
+```
+_Result:_
+```sh
+Enqueuing https://yandex.ru/images/today?size=1920x1080 with size 343103
+Enqueuing http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip with size 52693477
+Started https://yandex.ru/images/today?size=1920x1080 into /tmp/thrd_testDwv7xS
+Started http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip into /tmp/thrd_test3G9CHt
+https://yandex.ru/images/today?size=1920x1080 downloaded
+http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip downloading 22.66%
+http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip downloading 52.72%
+http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip downloading 84.45%
 ```
 
 As you can see, we got few improvements:
