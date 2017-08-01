@@ -46,7 +46,7 @@ function show_status(&$files)
     }
 }
 
-$file_sources = ['https://yandex.ru/images/today?size=1920x1080', 'http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip'];
+$file_sources = ['https://yandex.ru/images/today?size=1920x1080', 'http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip', 'http://soft.eurodir.ru/test-speed-100Mb.bin'];
 $files = [];
 foreach ($file_sources as $file_to_download) {
     $file_size = remote_filesize($file_to_download);
@@ -55,7 +55,7 @@ foreach ($file_sources as $file_to_download) {
 }
 
 $pool = new WorkerPool('DownloadWorker');
-$pool->setPoolSize(2);
+$pool->setPoolSize(3);
 foreach ($files as $file) {
     echo 'Enqueuing '.$file[0].' with size '.$file[1].PHP_EOL;
     $pool->sendData([$file]);
