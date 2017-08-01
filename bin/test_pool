@@ -7,10 +7,32 @@ require_once __DIR__.'/../vendor/autoload.php';
 $pool = new WorkerPool('wapmorgan\Threadable\Worker');
 $pool->setPoolSize(4);
 
-var_dump($pool->countFreeWorkers());
-var_dump($pool->countIdleWorkers());
+echo 'Running workers: ', $pool->countRunningWorkers().PHP_EOL;
+echo 'Idle workers: ', $pool->countIdleWorkers().PHP_EOL;
 
 $pool->sendData([123]);
+$pool->sendData([456]);
+$pool->sendData([789]);
 
-var_dump($pool->countFreeWorkers());
-var_dump($pool->countIdleWorkers());
+$i = 0;
+while (($i++) < 5) {
+    echo 'Running workers: ', $pool->countRunningWorkers().PHP_EOL;
+    echo 'Idle workers: ', $pool->countIdleWorkers().PHP_EOL;
+    foreach ($pool->getWorkers() as $worker) {
+        echo ': Worker '.$worker->getPid().' in state '.$worker->state.PHP_EOL;
+    }
+    usleep(500000);
+}
+
+$pool->setPoolSize(0);
+$pool->sendData([null]);
+
+$i = 0;
+while (($i++) < 5) {
+    echo 'Running workers: ', $pool->countRunningWorkers().PHP_EOL;
+    echo 'Idle workers: ', $pool->countIdleWorkers().PHP_EOL;
+    foreach ($pool->getWorkers() as $worker) {
+        echo ': Worker '.$worker->getPid().' in state '.$worker->state.PHP_EOL;
+    }
+    usleep(500000);
+}

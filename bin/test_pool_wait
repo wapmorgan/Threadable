@@ -1,0 +1,29 @@
+#!/usr/bin/env php
+<?php
+use wapmorgan\Threadable\Worker;
+use wapmorgan\Threadable\WorkerPool;
+require_once __DIR__.'/../vendor/autoload.php';
+
+class SimpleWorkerWithVariableDelay extends Worker
+{
+    public function onPayload($seconds)
+    {
+        echo 'Sleeping for '.$seconds.' sec'.PHP_EOL;
+        sleep($seconds);
+        echo 'Waking up'.PHP_EOL;
+    }
+}
+
+$pool = new WorkerPool('SimpleWorkerWithVariableDelay');
+$pool->setPoolSize(4);
+
+for ($i = 0; $i < rand(0, 9); $i++)
+$pool->sendData([1]);
+$pool->sendData([2]);
+$pool->sendData([3]);
+
+$pool->waitToFinish([
+    '0.5' => function (WorkerPool $pool) {
+        echo 'Microtime: '.microtime(true)."\t".'Running threads: '.$pool->countRunningWorkers().PHP_EOL;
+    }
+]);

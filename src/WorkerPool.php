@@ -8,9 +8,18 @@ use Exception;
  * Used signals:
  * - USR1 - childs notify worker pool that they finished work and have data in socket
  * - USR2 - childs notify worker pool that they have been terminated
+ * - CHLD - childs notify worker pool that they have been terminated (by system). Really, sometimes system send SIGCHLD, sometimes doesn't.
+ * So CHLD just triggers USR2 handlers to check termination of all workers.
  */
 class WorkerPool
 {
+    public $checkTime = 1;
+
+    /**
+     * One wait-unit - 100 msec.
+     */
+    const WAIT_UNIT_MILLITIME = 100;
+
     protected $class;
     protected $currentSize = 0;
     protected $newSize = 0;
@@ -20,7 +29,7 @@ class WorkerPool
      */
     public $waitPeriod = 100;
 
-    public function __contruct($class)
+    public function __construct($class)
     {
         if (!class_exists($class))
             throw new Exception('Worker class is not valid!');
@@ -37,27 +46,30 @@ class WorkerPool
             $this->newSize = $newSize;
     }
 
-    public function countFreeWorkers()
+    public function countActiveWorkers()
     {
         $i = 0;
-        foreach ($this->workers as $worker)
-            if ($worker->state == Worker::IDLE) $i++;
+        foreach ($this->workers as $worker) {
+            if (in_array($worker->state, [Worker::RUNNING, Worker::IDLE])) $i++;
+        }
         return $i;
     }
 
     public function countRunningWorkers()
     {
         $i = 0;
-        foreach ($this->workers as $worker)
+        foreach ($this->workers as $worker) {
             if ($worker->state == Worker::RUNNING) $i++;
+        }
         return $i;
     }
 
     public function countIdleWorkers()
     {
         $i = 0;
-        foreach ($this->workers as $worker)
-            if ($worker->state == Worker::IDLE) $i++;
+        foreach ($this->workers as $worker) {
+            if ($worker->state === Worker::IDLE) $i++;
+        }
         return $i;
     }
 
@@ -67,11 +79,11 @@ class WorkerPool
     public function sendData($data, $wait = false)
     {
         $this->checkSize(true);
-        if ($this->countFreeWorkers() === 0) {
+        if ($this->countIdleWorkers() === 0) {
             if (!$wait)
                 return null;
             else {
-                while ($this->countFreeWorkers() === 0) {
+                while ($this->countIdleWorkers() === 0) {
                     usleep($this->waitPeriod);
                 }
             }
@@ -86,7 +98,7 @@ class WorkerPool
 
     public function onSigUsr1()
     {
-        echo 'SIGUSR1'.PHP_EOL;
+        // echo 'SIGUSR1'.PHP_EOL;
         foreach ($this->workers as $worker) {
             $worker->checkForFinish();
         }
@@ -94,15 +106,17 @@ class WorkerPool
 
     public function onSigUsr2()
     {
-        echo 'SIGUSR2'.PHP_EOL;
+        // echo 'SIGUSR2'.PHP_EOL;
         foreach ($this->workers as $worker) {
-            $worker->checkForTermination();
+            if ($worker->checkForTermination())
+                echo 'Terminated '.$worker->getPid().PHP_EOL;
         }
     }
 
     public function onSigChld()
     {
-        echo 'SIGCHLD'.PHP_EOL;
+        // echo 'SIGCHLD -> SIGUSR2'.PHP_EOL;
+        $this->onSigUsr2();
     }
 
     protected function checkSize($waitIfNeeded = false)
@@ -116,18 +130,75 @@ class WorkerPool
             for ($i = 0; $i < $diff; $i++) {
                 $this->emitNewWorker();
             }
+            $this->currentSize = $this->newSize;
             return true;
         }
 
+        $diff = $this->currentSize - $this->newSize;
+        $terminating = 0;
+        $done = 0;
+        $j = 0;
         // decrease worker pool
-        while ($waitIfNeeded) {
+        while ($diff > $done) {
+            if ($this->countIdleWorkers() > 0 || $terminating > 0) {
+                $states = [];
+                foreach ($this->workers as $i => $worker) {
+                    $states[$worker->getPid()] = $worker->state;
+                    if ($worker->state == Worker::IDLE) {
+                        // echo 'Stopping worker '.$i.PHP_EOL;
+                        $terminating++;
+                        $worker->stop();
+                    }
+                    else if ($worker->state == Worker::TERMINATED) {
+                        // echo 'Terminated worker '.$i.PHP_EOL;
+                        $terminating--;
+                        $done++;
+                        unset($this->workers[$i]);
+                    }
+                }
+                // var_dump($states);
+            }
 
+            if (!$waitIfNeeded)
+                break;
+
+            sleep($this->checkTime);
         }
+        $this->currentSize = count($this->workers);
     }
 
     protected function emitNewWorker()
     {
         $class_name = $this->class;
-        $this->workers = new $class_name();
+        ($this->workers[] = new $class_name($this))->start();
+    }
+
+    public function getWorkers()
+    {
+        return $this->workers;
+    }
+
+    public function waitToFinish(array $trackers = [])
+    {
+        // convert seconds to wait units
+        foreach ($trackers as $tracker_time => $tracker_callback) {
+            unset($trackers[$tracker_time]);
+            $tracker_units = $tracker_time * 1000 / static::WAIT_UNIT_MILLITIME;
+            $trackers[$tracker_units] = $tracker_callback;
+        }
+
+        // unit counter
+        $i = 0;
+        while ($this->countRunningWorkers() > 0) {
+            $i++;
+
+            foreach ($trackers as $tracker_units => $tracker_callback) {
+                if ($i % $tracker_units === 0) {
+                    call_user_func($tracker_callback, $this);
+                }
+            }
+
+            usleep(static::WAIT_UNIT_MILLITIME * 1000);
+        }
     }
 }

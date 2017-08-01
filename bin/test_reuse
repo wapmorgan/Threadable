@@ -7,18 +7,30 @@ require_once __DIR__.'/../vendor/autoload.php';
 pcntl_signal(SIGUSR1, function () {});
 pcntl_signal(SIGUSR2, function () {});
 
+function waitUntilFinish(Worker $worker)
+{
+    while ($worker->state != Worker::IDLE) {
+        echo $worker->getPid().' state:'.$worker->state.PHP_EOL;
+        if ($worker->state == Worker::RUNNING) {
+            echo 'Running. Keep waiting...'.PHP_EOL;
+            $worker->checkForFinish();
+            sleep(1);
+        }
+    }
+    echo 'Finished. Adding new payload ...'.PHP_EOL;
+}
+
 $worker = new Worker();
 $worker->start();
 $worker->sendPayload([123]);
-echo $worker->getPid().' state:'.$worker->state.PHP_EOL;
+waitUntilFinish($worker);
+$worker->sendPayload([456]);
+waitUntilFinish($worker);
+$worker->sendPayload([789]);
+waitUntilFinish($worker);
 
 while ($worker->state != Worker::TERMINATED) {
-    echo $worker->getPid().' state:'.$worker->state.PHP_EOL;
-    if ($worker->state == Worker::RUNNING) {
-        echo 'Running. Keep waiting...'.PHP_EOL;
-        $worker->checkForFinish();
-        sleep(1);
-    } else if ($worker->state == Worker::IDLE) {
+    if ($worker->state == Worker::IDLE) {
         echo 'Ended. Stopping worker...'.PHP_EOL;
         $worker->stop();
         sleep(1);
