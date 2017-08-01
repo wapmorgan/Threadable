@@ -227,7 +227,13 @@ In this case you can use `WorkerPool`, which takes care of following this:
 
 Rich feature-set, right?! Let's rewrite our downloader with 2 threads to speed-up downloading.
 
-The **Settings and structures** block of code remains the same. We need to update only code working with threads.
+The **Settings and structures** block of code remains the same, but for demonstating purposes let's use two big files:
+```php
+// ...
+$file_sources = ['http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip', 'http://soft.eurodir.ru/test-speed-100Mb.bin'];
+// ...
+```
+We need to update only code working with threads.
 
 ```php
 // create pool with downloading-workers
@@ -251,14 +257,25 @@ $pool->waitToFinish([
 ```
 _Result:_
 ```sh
-Enqueuing https://yandex.ru/images/today?size=1920x1080 with size 343103
 Enqueuing http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip with size 52693477
-Started https://yandex.ru/images/today?size=1920x1080 into /tmp/thrd_testDwv7xS
-Started http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip into /tmp/thrd_test3G9CHt
-https://yandex.ru/images/today?size=1920x1080 downloaded
-http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip downloading 22.66%
-http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip downloading 52.72%
-http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip downloading 84.45%
+Enqueuing http://soft.eurodir.ru/test-speed-100Mb.bin with size 102854656
+Started http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip into /tmp/thrd_testchcHBK
+Started http://soft.eurodir.ru/test-speed-100Mb.bin into /tmp/thrd_testt6dyJa
+http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip downloading 23.26%
+http://soft.eurodir.ru/test-speed-100Mb.bin downloading 1.3%
+http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip downloading 47.08%
+http://soft.eurodir.ru/test-speed-100Mb.bin downloading 3.08%
+http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip downloading 72.62%
+http://soft.eurodir.ru/test-speed-100Mb.bin downloading 5.66%
+http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip downloading 98.7%
+http://soft.eurodir.ru/test-speed-100Mb.bin downloading 8.05%
+http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip downloaded
+http://soft.eurodir.ru/test-speed-100Mb.bin downloading 19.15%
+http://soft.eurodir.ru/test-speed-100Mb.bin downloading 31.31%
+http://soft.eurodir.ru/test-speed-100Mb.bin downloading 43.69%
+http://soft.eurodir.ru/test-speed-100Mb.bin downloading 56.87%
+http://soft.eurodir.ru/test-speed-100Mb.bin downloading 71.95%
+http://soft.eurodir.ru/test-speed-100Mb.bin downloading 87.56%
 ```
 
 As you can see, we got few improvements:
