@@ -258,5 +258,5 @@ Full path: `wapmorgan\Threadable\DownloadWorker`
 Description: downloads remote file and saves it on local server.
 Payload:
 
-    - `source` - remote file url
-    - `targe` - local file path
+- `source` - remote file url
+- `targe` - local file path
