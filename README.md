@@ -15,7 +15,7 @@ All you need to have installed: _pcntl_ and _posix_ extensions.
 ## What is a Worker?
 **Worker** - is a basic class for any worker. It is composed of two substances (physically, stored in one class, but providing different functionalities):
 
-1. A `Worker` - a separate thread running main worker code.
+1. A `Worker` - a separate thread, running main worker code.
 2. A `Worker` - manipulation manager for the first item.
 
 ### How to create your Worker
@@ -44,7 +44,7 @@ It takes care of all maintenance, payload dispatching and life-cycle of workers.
 
 ## Just Worker
 
-If you just need to parallel some work and do it another thread, you can use utilize just `Worker` class without any other dependencies. 
+If you just need to parallel some work and do it in another thread, you can utilize just `Worker` class without any other dependencies. 
 
 To use it correctly you need to understand the life-cycle of worker:
 
@@ -127,7 +127,7 @@ foreach ($files as $file) {
 }
 
 // main worker thread loop
-while ($worker->state === Worker::TERMINATED) {
+while ($worker->state !== Worker::TERMINATED) {
     // Worker::RUNNING state indicates that worker thread is still working over some payload  
     if ($worker->state == Worker::RUNNING) {
     
@@ -174,7 +174,7 @@ $worker->stop(true);
 But what if you need do few jobs simultaneously? You can create few instances of your worker, but it will be pain in the a$$ to manipulate and synchronize them.
 In this case you can use `WorkerPool`, which takes care of following this:
 
-1. Start new workers in the beginning.
+1. Start new workers at the beginning.
 2. Dispatch your payload when you call **sendData** to any idle worker*.
 3. Create new workers or delete redundant workers when you change **poolSize**.
 4. Accept result of workers when they done and marks them as idle.
@@ -217,20 +217,20 @@ As you can see, we got few improvements:
 ## API
 ### Worker secrets and important methods
 
-- `stop($wait = false)` - sends stop command to worker thread. It uses _SIGTERM_ signal to allow worker thread end correctly and don't lose any data. If `$wait = true`, holds the execution until the worked is down. If `$wait = true`, holds the execution until the worker goes down.
-- `kill($wait = false)` - sends stop command to worker thread. It uses _SIGKILL_ signal and not recommended except special cases, because it simply kills the worker thread and it loses all data being processed in that moment. If `$wait = true`, holds the execution until the worker goes down.
+- `stop($wait = false)` - sends stop command to worker thread. It uses _SIGTERM_ signal to allow worker thread finish work correctly and don't lose any data. If `$wait = true`, holds the execution until the worker is down.
+- `kill($wait = false)` - sends stop command to worker thread. It uses _SIGKILL_ signal and not recommended except special cases, because it simply kills the worker thread and it loses all data being processed in that moment. If `$wait = true`, holds the execution until the worker is down.
 
-You can't restart a worker that has been terminated (with `stop()` or `kill()`), you need to create new worker and start it with `start()`.
+**Warning about worker re-using!** You can't restart a worker that has been terminated (with `stop()` or `kill()`), you need to create new worker and start it with `start()`.
 
 ### WorkersPool features
 
 - `countIdleWorkers(): integer` - returns number of workers that are in `Worker::IDLE` state.
 - `countRunningWorkers(): integer` - returns number of workers that are in `Worker::RUNNING` state.
-- `countActiveWorkers(): intger` - returns number of workers that are either in `Worker::RUNNING` or `Worker::IDLE` states.
-- `enableDataOverhead()` - enabled _dataOverhead_-mode.
+- `countActiveWorkers(): integer` - returns number of workers that are either in `Worker::RUNNING` or `Worker::IDLE` states.
+- `enableDataOverhead()` - enables _dataOverhead_-mode.
 - `sendData($data, $wait = false): null|boolean` - dispatches payload to any free worker. Behavior depends on _dataOverhead_ feature status:
-    - When _dataOverhead_ is disabled (by default) and `$wait = false`, this method returns `null` when no free workers available or `boolean` with status of dispatching (`true/false`).
+    - When _dataOverhead_ is disabled and `$wait = false` (by default), this method returns `null` when no free workers available or `boolean` with status of dispatching (`true/false`).
     - When _dataOverhead_ is disabled (by default) and `$wait = true`, this method will hold the execution of the script until any worker became free, dispatch your payload to it and return the status of dispatching (`true/false`). 
     - When _dataOverhead_ is enabled, this method will dispatch your payload to any free worker. If there's not free workers, it will put new tasks in workers internal queues, which will be processed. This method uses fair distribution between all workers (so you can be sure that 24 tasks will be distributed between 6 workers as 4 per worker).         
-        
+
 - `waitToFinish(array $trackers = null)`
