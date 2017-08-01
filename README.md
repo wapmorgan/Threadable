@@ -254,9 +254,19 @@ As you can see, we got few improvements:
 
 As you've seen in examples, we created a downloading worker. But there is no need for this, we could use predefined `DownloadWorker` which does the same.
 
-Full path: `wapmorgan\Threadable\DownloadWorker`
-Description: downloads remote file and saves it on local server.
-Payload:
+- Full path: `wapmorgan\Threadable\DownloadWorker`
+- Description: downloads remote file and saves it on local server.
+- Payload:
+    - `source` - remote file url
+    - `targe` - local file path
 
-- `source` - remote file url
-- `targe` - local file path
+# Use cases
+
+Examples of programs that can be built with `Threadable`:
+
+- Media converters / encoders
+- Data importers / exporters
+- Bots for social networks / messengers
+- Parsers / Scanners / Analyzers
+- Servers (_don't recommend, but if you want to reinvent the wheel_)
+- ...
