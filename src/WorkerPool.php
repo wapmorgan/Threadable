@@ -13,6 +13,7 @@ use Exception;
  */
 class WorkerPool
 {
+
     public $checkTime = 1;
 
     /**
@@ -27,6 +28,10 @@ class WorkerPool
     protected $dataOverhead = false;
     protected $overheadCounters = [];
     /**
+     * Used to finish workers only when master thread terminates
+     */
+    protected $masterThreadId;
+    /**
      * @var integer Milliseconds between checks for free workers
      */
     public $waitPeriod = 100;
@@ -37,6 +42,9 @@ class WorkerPool
             throw new Exception('Worker class is not valid!');
         $this->class = $class;
 
+        if ($this->masterThreadId === null)
+            $this->masterThreadId = getmypid();
+
         pcntl_signal(SIGUSR2, [$this, 'onSigUsr2']);
         pcntl_signal(SIGUSR1, [$this, 'onSigUsr1']);
         pcntl_signal(SIGCHLD, [$this, 'onSigChld']);
@@ -44,8 +52,13 @@ class WorkerPool
 
     public function __destruct()
     {
-        foreach ($this->workers as $worker)
-            $worker->stop();
+        if (getmypid() === $this->masterThreadId) {
+            echo 'Destructing workers'.PHP_EOL;
+            foreach ($this->workers as $worker) {
+                if ($worker->isActive())
+                    $worker->stop();
+            }
+        }
     }
 
     public function setPoolSize($newSize)

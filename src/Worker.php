@@ -15,6 +15,7 @@ class Worker
     // shared preferences
 
     protected $useSignals = false;
+    protected $selfManaged = false;
 
     // parent properties
     public $state = self::IDLE;
@@ -38,10 +39,22 @@ class Worker
      */
     public function __construct($workerPool = null)
     {
-        if ($workerPool instanceof WorkerPool)
+        if ($workerPool instanceof WorkerPool) {
             $this->useSignals = true;
+            $this->selfManaged = true;
+        }
     }
 
+    public function __destruct()
+    {
+        // this is Worker manager thread
+        if ($this->selfManaged && $this->pid !== null && $this->isActive())
+            $this->stop(true);
+    }
+
+    /**
+     * Starts a worker and begins listening for incoming payload
+     */
     public function start()
     {
         $sockets = [];

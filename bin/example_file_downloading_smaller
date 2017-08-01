@@ -1,0 +1,69 @@
+#!/usr/bin/env php
+<?php
+use wapmorgan\Threadable\Worker;
+use wapmorgan\Threadable\WorkerPool;
+require_once __DIR__.'/../vendor/autoload.php';
+
+class DownloadWorker extends Worker
+{
+    public function onPayload($data)
+    {
+        echo 'Started '.$data[0].' into '.$data[2].PHP_EOL;
+        copy($data[0], $data[2]);
+    }
+}
+
+function remote_filesize($path)
+{
+    $fp = fopen($path, 'r');
+    $inf = stream_get_meta_data($fp);
+    fclose($fp);
+
+    foreach($inf["wrapper_data"] as $v) {
+        if (stristr($v,"content-length")) {
+            $v = explode(":",$v);
+            return (int)trim($v[1]);
+        }
+    }
+}
+
+function show_status(&$files)
+{
+    foreach ($files as $i => $file) {
+        if (file_exists($file[2])) {
+            clearstatcache(true, $file[2]);
+            $downloaded_size = filesize($file[2]);
+            if ($downloaded_size == $file[1]) {
+                echo $file[0].' downloaded'.PHP_EOL;
+                unset($files[$i]);
+                unlink($file[2]);
+            } else if ($downloaded_size === 0) {
+                // echo $file[0].' in queue'.PHP_EOL;
+            } else  {
+                echo $file[0].' downloading '.round($downloaded_size * 100 / $file[1], 2).'%'.PHP_EOL;
+            }
+        }
+    }
+}
+
+$file_sources = ['https://yandex.ru/images/today?size=1920x1080', 'http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip'];
+$files = [];
+foreach ($file_sources as $file_to_download) {
+    $file_size = remote_filesize($file_to_download);
+    $output = tempnam(sys_get_temp_dir(), 'thrd_test');
+    $files[] = [$file_to_download, $file_size, $output];
+}
+
+$worker = new DownloadWorker();
+$worker->start();
+foreach ($files as $file) {
+    echo 'Enqueuing '.$file[0].' with size '.$file[1].PHP_EOL;
+    $worker->sendPayload([$file]);
+}
+
+while ($worker->state == Worker::RUNNING) {
+    show_status($files);
+    $worker->checkForFinish();
+    usleep(500000);
+}
+$worker->stop(true);

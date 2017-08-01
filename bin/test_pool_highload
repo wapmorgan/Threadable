@@ -17,7 +17,7 @@ class CpuEatingWorker extends Worker
 }
 
 $pool = new WorkerPool('CpuEatingWorker');
-$pool->setPoolSize(4);
+$pool->setPoolSize(8);
 $pool->enableDataOverhead();
 
 for ($i = 0; $i < 12; $i++)
@@ -30,3 +30,5 @@ $pool->waitToFinish([
         echo 'Microtime: '.microtime(true)."\t".'Running threads: '.$pool->countRunningWorkers().PHP_EOL;
     }
 ]);
+echo $pool->countIdleWorkers().PHP_EOL;
+echo 'Done'.PHP_EOL;
