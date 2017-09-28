@@ -30,8 +30,8 @@ All you need to have installed: _pcntl_ and _posix_ extensions.
 ## What is a Worker?
 **Worker** - is a basic class for any worker. It is composed of two substances (physically, stored in one class, but providing different functionalities):
 
-1. A `Worker` - a separate thread, running main worker code.
-2. A `Worker` - manipulation manager for the first item.
+1. A `Worker` - a separate thread, doing all background work.
+2. A `Worker` manager - a manipulator for the worker thread.
 
 ### How to create your Worker
 
@@ -64,12 +64,12 @@ If you just need to parallel some work and do it in another thread, you can util
 To use it correctly you need to understand the life-cycle of worker:
 
 1. Worker starts in another thread. To do this call `start()`.
-2. Worker accepts new payload and starts working on it. Really, manager of worker send payload via local socket. Worker thread starts working on it and returns result of work on finish via the same socket. To do this call `sendPayload($data)`.
+2. Worker accepts new payload and starts working on it. To do this call `sendPayload($data)`. Really, worker manager sends payload via local socket. Worker thread starts working on it and returns result of work on finish via the same socket.
 3. Worker manager checks if worker thread has done and read result of work. To do this call `checkForFinish()`.
 4. Worker stops or being killed by `stop()` or `kill()` methods respectively.
 5. Worker manager checks if worker thread has finished and marks itself terminated. To do this call `checkForTermination()`.
 
-Background work happens in **2 step**, where worker thread runs `onPayload($data)` method of class with actual payload.
+Background work happens in **2 steps**, where worker thread runs `onPayload($data)` method of class with actual payload.
 
 To summarize, this is an example of downloading file in another thread with real-time displaying of progress:
 
@@ -282,7 +282,7 @@ As you can see, we got few improvements:
 
 1. Our code became smaller and clearer.
 2. We can run as many workers as we need.
-3. We don't take care of worker termination anymore. Let WorkerPool do it for us.
+3. We don't take care of worker termination anymore. Let WorkerPool work for us.
 
 # API
 ## Worker secrets and important methods
@@ -303,7 +303,7 @@ As you can see, we got few improvements:
     - When _dataOverhead_ is disabled (by default) and `$wait = true`, this method will hold the execution of the script until any worker became free, dispatch your payload to it and return the status of dispatching (`true/false`).
     - When _dataOverhead_ is enabled, this method will dispatch your payload to any free worker. If there's not free workers, it will put new tasks in workers internal queues, which will be processed. This method uses fair distribution between all workers (so you can be sure that 24 tasks will be distributed between 6 workers as 4 per worker).
 
-- `waitToFinish(array $trackers = null)`
+- `waitToFinish(array $trackers = null)` - holds the execution of script untill all workers go into `IDLE` state.
 
 # Predefined workers
 ## DownloadWorker
@@ -312,7 +312,7 @@ As you've seen in examples, we created a downloading worker. But there is no nee
 
 - Full path: `wapmorgan\Threadable\DownloadWorker`
 - Description: downloads remote file and saves it on local server.
-- Payload:
+- Payload (array):
     - `source` - remote file url
     - `targe` - local file path
 
@@ -324,5 +324,5 @@ Examples of programs that can be built with `Threadable`:
 - Data importers / exporters
 - Bots for social networks / messengers
 - Parsers / Scanners / Analyzers
-- Servers (_don't recommend, but if you want to reinvent the wheel_)
+- Servers (_don't recommend unless you want to reinvent the wheel_)
 - ...
