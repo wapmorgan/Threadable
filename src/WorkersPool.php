@@ -54,7 +54,7 @@ class WorkersPool
         } else if (is_object($classOrObject)){
             if (!($classOrObject instanceof Worker))
                 throw new Exception('Worker object is not a Worker child!');
-            $this->object = $classOrObject;
+            $this->object = $classOrObject->disableSelfManagment();
         } else {
             throw new Exception('Worker should be a class name or an object!');
         }
@@ -227,7 +227,7 @@ class WorkersPool
         // if worker is a class
         if ($this->class) {
             $class_name = $this->class;
-            ($this->workers[] = new $class_name($this))->start();
+            ($this->workers[] = new $class_name($this))->disableSelfManagment()->start();
         }
         // if object
         else {

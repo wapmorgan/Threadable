@@ -35,14 +35,19 @@ class Worker
 
     /**
      * Configures worker
-     * @param null|WorkersPool If passed, worker will use signals to communicate with pool
      */
-    public function __construct($WorkersPool = null)
+    public function __construct()
     {
-        if ($WorkersPool instanceof WorkersPool) {
-            $this->useSignals = true;
-            $this->selfManaged = true;
-        }
+    }
+
+    /**
+     * Disables self-managment. Use only if you manage workers via WorkersPool.
+     */
+    public function disableSelfManagment()
+    {
+        $this->useSignals = true;
+        $this->selfManaged = true;
+        return $this;
     }
 
     public function __destruct()

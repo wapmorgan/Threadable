@@ -64,7 +64,7 @@ If you just need to parallel some work and do it in another thread, you can util
 To use it correctly you need to understand the life-cycle of worker:
 
 1. Worker starts in another thread. To do this call `start()`.
-2. Worker accepts new payload and starts working on it. To do this call `sendPayload($data)`. Really, worker manager sends payload via local socket. Worker thread starts working on it and returns result of work on finish via the same socket.
+2. Worker accepts new payload and starts working on it. To do this call `sendPayload(array $data)`. Really, worker manager sends payload via local socket. Worker thread starts working on it and returns result of work on finish via the same socket.
 3. Worker manager checks if worker thread has done and read result of work. To do this call `checkForFinish()`.
 4. Worker stops or being killed by `stop()` or `kill()` methods respectively.
 5. Worker manager checks if worker thread has finished and marks itself terminated. To do this call `checkForTermination()`.
@@ -238,6 +238,11 @@ We need to update only code working with threads.
 ```php
 // create pool with downloading-workers
 $pool = new WorkersPool('DownloadWorker');
+/**
+ * Also, you can create pool out of object:
+ * $pool = new WorkersPool(new DownloadWorker());
+ * This is useful, when you open shared sources within worker constructor so all workers can use them.
+ */
 // use only 2 workers (this is enough for our work)
 $pool->setPoolSize(2);
 

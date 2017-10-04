@@ -1,0 +1,39 @@
+#!/usr/bin/env php
+<?php
+use wapmorgan\Threadable\Worker;
+use wapmorgan\Threadable\WorkersPool;
+require_once __DIR__.'/../vendor/autoload.php';
+
+class ObjectWorker extends Worker
+{
+    protected $signature;
+
+    public function __construct()
+    {
+        parent::__construct();
+        $this->signature = rand(1, 10000);
+    }
+
+    public function onPayload(array $payload)
+    {
+        $time = mt_rand(1, 5);
+        echo 'this is an object worker '.$payload['n'].'; sleeping for '.$time.' sec'.PHP_EOL;
+        echo 'signature: '.$this->signature.PHP_EOL;
+        sleep($time);
+    }
+}
+
+$pool = new WorkersPool(new ObjectWorker());
+$pool->setPoolSize(8);
+$pool->enableDataOverhead();
+
+for ($i = 0; $i < 24; $i++)
+    $pool->sendData(['n' => $i]);
+
+$pool->waitToFinish([
+    '0.5' => function (WorkersPool $pool) {
+        echo 'Microtime: '.microtime(true)."\t".'Running threads: '.$pool->countRunningWorkers().PHP_EOL;
+    }
+]);
+echo $pool->countIdleWorkers().PHP_EOL;
+echo 'Done'.PHP_EOL;
