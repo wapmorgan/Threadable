@@ -1,7 +1,7 @@
 #!/usr/bin/env php
 <?php
 use wapmorgan\Threadable\Worker;
-use wapmorgan\Threadable\WorkerPool;
+use wapmorgan\Threadable\WorkersPool;
 require_once __DIR__.'/../vendor/autoload.php';
 
 class SimpleWorkerWithVariableDelay extends Worker
@@ -14,7 +14,7 @@ class SimpleWorkerWithVariableDelay extends Worker
     }
 }
 
-$pool = new WorkerPool('SimpleWorkerWithVariableDelay');
+$pool = new WorkersPool('SimpleWorkerWithVariableDelay');
 $pool->setPoolSize(4);
 $pool->enableDataOverhead();
 
@@ -24,7 +24,7 @@ for ($i = 0; $i < 9; $i++)
 var_dump($pool->getWorkers());
 
 $pool->waitToFinish([
-    '0.5' => function (WorkerPool $pool) {
+    '0.5' => function (WorkersPool $pool) {
         echo 'Microtime: '.microtime(true)."\t".'Running threads: '.$pool->countRunningWorkers().PHP_EOL;
     }
 ]);

@@ -15,7 +15,7 @@ All you need to have installed: _pcntl_ and _posix_ extensions.
     - What is a `WorkersPool`?
 2. How to use
     - One worker
-    - Few workers with `WorkerPool`
+    - Few workers with `WorkersPool`
 3. API
     - `Worker` secrets and important methods
     - `WorkersPool` features
@@ -211,17 +211,17 @@ http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip downloading 95.05%
 http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip downloaded
 ```
 
-## Few workers with WorkerPool
+## Few workers with WorkersPool
 
 But what if you need do few jobs simultaneously? You can create few instances of your worker, but it will be pain in the a$$ to manipulate and synchronize them.
-In this case you can use `WorkerPool`, which takes care of following this:
+In this case you can use `WorkersPool`, which takes care of following this:
 
 1. Start new workers at the beginning.
 2. Dispatch your payload when you call **sendData** to any idle worker*.
 3. Create new workers or delete redundant workers when you change **poolSize**.
 4. Accept result of workers when they done and marks them as idle.
 5. Monitor all worker threads and count idle, running, active (idle or running) workers. Provides interfaces to acquire this information.
-6. Stop all workers when `WorkerPool` object is being destructed (via `unset()` or when script execution is going down).
+6. Stop all workers when `WorkersPool` object is being destructed (via `unset()` or when script execution is going down).
 7. *Can work in _dataOverhead_-mode. This mode enables sending extra payload to workers even when are already working on any task. If in this mode you sent few payloads to worker, it will not switch to **Worker::IDLE** state until all passed payloads have been processed.
 8. Provide interface to appoint progress trackers and run them periodically until all threads become in `Worker::IDLE` state.
 
@@ -237,11 +237,11 @@ We need to update only code working with threads.
 
 ```php
 // create pool with downloading-workers
-$pool = new WorkerPool('DownloadWorker');
+$pool = new WorkersPool('DownloadWorker');
 // use only 2 workers (this is enough for our work)
 $pool->setPoolSize(2);
 
-// dispatch payload to workers. Notice! WorkerPool uses sendData() method instead of sendPayload().
+// dispatch payload to workers. Notice! WorkersPool uses sendData() method instead of sendPayload().
 foreach ($files as $file) {
     echo 'Enqueuing '.$file[0].' with size '.$file[1].PHP_EOL;
     $pool->sendData([$file]);
@@ -282,7 +282,7 @@ As you can see, we got few improvements:
 
 1. Our code became smaller and clearer.
 2. We can run as many workers as we need.
-3. We don't take care of worker termination anymore. Let WorkerPool work for us.
+3. We don't take care of worker termination anymore. Let WorkersPool work for us.
 
 # API
 ## Worker secrets and important methods

@@ -1,7 +1,7 @@
 #!/usr/bin/env php
 <?php
 use wapmorgan\Threadable\Worker;
-use wapmorgan\Threadable\WorkerPool;
+use wapmorgan\Threadable\WorkersPool;
 require_once __DIR__.'/../vendor/autoload.php';
 
 class DownloadWorker extends Worker
@@ -65,7 +65,7 @@ while ($worker->state !== Worker::TERMINATED) {
     if ($worker->state == Worker::RUNNING) {
         show_status($files);
         $worker->checkForFinish();
-        usleep(500000);
+        usleep(5000000);
     } else if ($worker->state == Worker::IDLE) {
         echo 'Ended. Stopping worker...'.PHP_EOL;
         $worker->stop();

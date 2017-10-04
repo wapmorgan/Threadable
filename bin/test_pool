@@ -1,10 +1,10 @@
 #!/usr/bin/env php
 <?php
 use wapmorgan\Threadable\Worker;
-use wapmorgan\Threadable\WorkerPool;
+use wapmorgan\Threadable\WorkersPool;
 require_once __DIR__.'/../vendor/autoload.php';
 
-$pool = new WorkerPool('wapmorgan\Threadable\Worker');
+$pool = new WorkersPool('wapmorgan\Threadable\Worker');
 $pool->setPoolSize(4);
 
 echo 'Running workers: ', $pool->countRunningWorkers().PHP_EOL;

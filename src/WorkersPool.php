@@ -11,7 +11,7 @@ use Exception;
  * - CHLD - childs notify worker pool that they have been terminated (by system). Really, sometimes system send SIGCHLD, sometimes doesn't.
  * So CHLD just triggers USR2 handlers to check termination of all workers.
  */
-class WorkerPool
+class WorkersPool
 {
 
     public $checkTime = 1;
@@ -53,7 +53,7 @@ class WorkerPool
     public function __destruct()
     {
         if (getmypid() === $this->masterThreadId) {
-            echo 'Destructing workers'.PHP_EOL;
+            // echo 'Destructing workers'.PHP_EOL;
             foreach ($this->workers as $worker) {
                 if ($worker->isActive())
                     $worker->stop();
