@@ -21,7 +21,16 @@ class WorkersPool
      */
     const WAIT_UNIT_MILLITIME = 100;
 
+
+    /**
+     * @var string Worker class name
+     */
     protected $class;
+    /**
+     * @var object Worker object
+     */
+    protected $object;
+
     protected $currentSize = 0;
     protected $newSize = 0;
     protected $workers = [];
@@ -36,11 +45,19 @@ class WorkersPool
      */
     public $waitPeriod = 100;
 
-    public function __construct($class)
+    public function __construct($classOrObject)
     {
-        if (!class_exists($class))
-            throw new Exception('Worker class is not valid!');
-        $this->class = $class;
+        if (is_string($classOrObject)) {
+            if (!class_exists($classOrObject))
+                throw new Exception('Worker class is not valid!');
+            $this->class = $classOrObject;
+        } else if (is_object($classOrObject)){
+            if (!($classOrObject instanceof Worker))
+                throw new Exception('Worker object is not a Worker child!');
+            $this->object = $classOrObject;
+        } else {
+            throw new Exception('Worker should be a class name or an object!');
+        }
 
         if ($this->masterThreadId === null)
             $this->masterThreadId = getmypid();
@@ -207,8 +224,16 @@ class WorkersPool
 
     protected function emitNewWorker()
     {
-        $class_name = $this->class;
-        ($this->workers[] = new $class_name($this))->start();
+        // if worker is a class
+        if ($this->class) {
+            $class_name = $this->class;
+            ($this->workers[] = new $class_name($this))->start();
+        }
+        // if object
+        else {
+            $worker = clone $this->object;
+            ($this->workers[] = $worker)->start();
+        }
         $this->overheadCounters[] = 0;
     }
 

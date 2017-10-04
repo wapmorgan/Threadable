@@ -181,7 +181,7 @@ class Worker
      * Sends payload to worker
      * @param array $data
      */
-    public function sendPayload($data)
+    public function sendPayload(array $data)
     {
         $this->dataCounter++;
         // echo 'It is '.$this->dataCounter.' payload for '.$this->pid.PHP_EOL;
@@ -236,7 +236,7 @@ class Worker
             // echo '[Payload] Msg('.$msg_size.'): '.$msg.PHP_EOL;
 
             // launch worker to do it's work
-            $result = call_user_func_array([$this, 'onPayload'], $data);
+            $result = call_user_func([$this, 'onPayload'], $data);
             $data = serialize($result);
 
             // write result to socket
@@ -257,7 +257,7 @@ class Worker
     /**
      * The main handler and work executor in worker. Accepts all payload and should do all the work to process it.
      */
-    public function onPayload($abc)
+    public function onPayload(array $payload)
     {
         echo 'I\'m just a worker with pid '.getmypid().'. Got payload: '.$abc.PHP_EOL;
         return 123;

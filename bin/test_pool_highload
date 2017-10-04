@@ -6,9 +6,9 @@ require_once __DIR__.'/../vendor/autoload.php';
 
 class CpuEatingWorker extends Worker
 {
-    public function onPayload($i)
+    public function onPayload(array $payload)
     {
-        echo 'new iteration '.$i.PHP_EOL;
+        echo 'new iteration '.$payload['i'].PHP_EOL;
         $till = microtime(true) + 5;
         while (microtime(true) < $till) {
 
@@ -21,7 +21,7 @@ $pool->setPoolSize(8);
 $pool->enableDataOverhead();
 
 for ($i = 0; $i < 12; $i++)
-    $pool->sendData([$i]);
+    $pool->sendData(['i' => $i]);
 
 var_dump($pool->getOverheadCounters());
 

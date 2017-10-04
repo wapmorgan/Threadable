@@ -6,7 +6,7 @@ require_once __DIR__.'/../vendor/autoload.php';
 
 class DownloadWorker extends Worker
 {
-    public function onPayload($data)
+    public function onPayload(array $data)
     {
         echo 'Started '.$data[0].' into '.$data[2].PHP_EOL;
         copy($data[0], $data[2]);

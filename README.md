@@ -35,14 +35,14 @@ All you need to have installed: _pcntl_ and _posix_ extensions.
 
 ### How to create your Worker
 
-The all you need it to inherit `Worker` class (full name is _wapmorgan\Threadable\Worker_) and redefine `onPayload($data)` public method.
+The all you need it to inherit `Worker` class (full name is _wapmorgan\Threadable\Worker_) and redefine `onPayload(array $data)` public method.
 
 For example:
 ```php
 use wapmorgan\Threadable\Worker;
 class SleepingWorker extends Worker
 {
-    public function onPayload($data)
+    public function onPayload(array $data)
     {
         echo 'I have started at '.date('r').PHP_EOL;
         sleep(3);
@@ -69,7 +69,7 @@ To use it correctly you need to understand the life-cycle of worker:
 4. Worker stops or being killed by `stop()` or `kill()` methods respectively.
 5. Worker manager checks if worker thread has finished and marks itself terminated. To do this call `checkForTermination()`.
 
-Background work happens in **2 steps**, where worker thread runs `onPayload($data)` method of class with actual payload.
+Background work happens in **2 steps**, where worker thread runs `onPayload(array $data)` method of class with actual payload.
 
 To summarize, this is an example of downloading file in another thread with real-time displaying of progress:
 
@@ -78,7 +78,7 @@ To summarize, this is an example of downloading file in another thread with real
 // Implement class-downloader
 class DownloadWorker extends Worker
 {
-    public function onPayload($data)
+    public function onPayload(array $data)
     {
         echo 'Started '.$data[0].' into '.$data[2].PHP_EOL;
         copy($data[0], $data[2]);

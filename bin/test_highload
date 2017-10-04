@@ -9,7 +9,7 @@ pcntl_signal(SIGUSR2, function () {});
 
 class CpuEatingWorker extends Worker
 {
-    public function onPayload($abc)
+    public function onPayload(array $abc)
     {
         echo 'new iteration'.PHP_EOL;
         $till = microtime(true) + 5;
