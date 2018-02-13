@@ -3,7 +3,7 @@
 Easy-to-use threading library providing all basic features to run your code in parallel mode.
 All you need to have installed: _pcntl_ and _posix_ extensions.
 
-[![Composer package](http://xn--e1adiijbgl.xn--p1acf/badge/wapmorgan/threadable)](https://packagist.org/packages/wapmorgan/threadable)
+[![Composer package](http://composer.network/badge/wapmorgan/threadable)](https://packagist.org/packages/wapmorgan/threadable)
 [![Latest Stable Version](https://poser.pugx.org/wapmorgan/threadable/v/stable)](https://packagist.org/packages/wapmorgan/threadable)
 [![Latest Unstable Version](https://poser.pugx.org/wapmorgan/threadable/v/unstable)](https://packagist.org/packages/wapmorgan/threadable)
 [![License](https://poser.pugx.org/wapmorgan/threadable/license)](https://packagist.org/packages/wapmorgan/threadable)
