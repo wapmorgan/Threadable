@@ -2,7 +2,7 @@
     "name": "wapmorgan/threadable",
     "description": "Easy-to-use threading library providing all basic features to run your code in parallel mode",
     "keywords": ["threads", "threading", "parallel"],
-    "license": "GPL-3",
+    "license": "GPL-3.0-only",
     "authors": [
         {
             "name": "Sergey Vanyushin",
