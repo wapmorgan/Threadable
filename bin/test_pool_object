@@ -11,7 +11,12 @@ class ObjectWorker extends Worker
     public function __construct()
     {
         parent::__construct();
-        $this->signature = rand(1, 10000);
+        $this->regenerate();
+    }
+
+    public function __clone()
+    {
+        $this->regenerate();
     }
 
     public function onPayload(array $payload)
@@ -20,6 +25,11 @@ class ObjectWorker extends Worker
         echo 'this is an object worker '.$payload['n'].'; sleeping for '.$time.' sec'.PHP_EOL;
         echo 'signature: '.$this->signature.PHP_EOL;
         sleep($time);
+    }
+
+    private function regenerate()
+    {
+        $this->signature = rand(1, 10000);
     }
 }
 

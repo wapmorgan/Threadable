@@ -9,7 +9,10 @@ trait Threadable
      * Forks current process.
      * The parent thread will be returned to calling code.
      * The child thread will execute callback and exit after that.
+     * @param $callback
+     * @param array $params
      * @return integer The ID of child process
+     * @throws Exception
      */
     public function fork($callback, array $params = [])
     {

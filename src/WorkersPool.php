@@ -6,14 +6,14 @@ use Exception;
 
 /**
  * Used signals:
- * - USR1 - childs notify worker pool that they finished work and have data in socket
- * - USR2 - childs notify worker pool that they have been terminated
- * - CHLD - childs notify worker pool that they have been terminated (by system). Really, sometimes system send SIGCHLD, sometimes doesn't.
+ * - USR1 - children notify worker pool that they finished work and have data in socket
+ * - USR2 - children notify worker pool that they have been terminated
+ * - CHLD - children notify worker pool that they have been terminated (by system). Really, sometimes system send SIGCHLD, sometimes doesn't.
  * So CHLD just triggers USR2 handlers to check termination of all workers.
  */
 class WorkersPool
 {
-
+    /** @var int Timeout for resize operations */
     public $checkTime = 1;
 
     /**
@@ -21,30 +21,37 @@ class WorkersPool
      */
     const WAIT_UNIT_MILLITIME = 100;
 
-
-    /**
-     * @var string Worker class name
-     */
+    /** @var string Worker class name */
     protected $class;
-    /**
-     * @var object Worker object
-     */
+
+    /** @var object Worker object */
     protected $object;
 
+    /** @var int Current size of pool. Used in setPollSize() */
     protected $currentSize = 0;
+    /** @var int New size of pool. Used in setPollSize() */
     protected $newSize = 0;
+
+    /** @var Worker[] */
     protected $workers = [];
+
+    /** @var bool */
     protected $dataOverhead = false;
+
+    /** @var array */
     protected $overheadCounters = [];
-    /**
-     * Used to finish workers only when master thread terminates
-     */
+
+    /** @var int Id of master thread process. Contains id of process, in which WorkersPool object was created */
     protected $masterThreadId;
-    /**
-     * @var integer Milliseconds between checks for free workers
-     */
+
+    /** @var integer Milliseconds between checks for free workers */
     public $waitPeriod = 100;
 
+    /**
+     * WorkersPool constructor.
+     * @param $classOrObject
+     * @throws Exception
+     */
     public function __construct($classOrObject)
     {
         if (is_string($classOrObject)) {
@@ -54,7 +61,7 @@ class WorkersPool
         } else if (is_object($classOrObject)){
             if (!($classOrObject instanceof Worker))
                 throw new Exception('Worker object is not a Worker child!');
-            $this->object = $classOrObject->disableSelfManagment();
+            $this->object = $classOrObject->disableSelfManagement();
         } else {
             throw new Exception('Worker should be a class name or an object!');
         }
@@ -67,6 +74,9 @@ class WorkersPool
         pcntl_signal(SIGCHLD, [$this, 'onSigChld']);
     }
 
+    /**
+     * Destruct workers if still active
+     */
     public function __destruct()
     {
         if (getmypid() === $this->masterThreadId) {
@@ -78,12 +88,18 @@ class WorkersPool
         }
     }
 
+    /**
+     * @param int $newSize
+     */
     public function setPoolSize($newSize)
     {
         if ($this->newSize != $newSize)
             $this->newSize = $newSize;
     }
 
+    /**
+     * @return int
+     */
     public function countActiveWorkers()
     {
         $i = 0;
@@ -93,6 +109,9 @@ class WorkersPool
         return $i;
     }
 
+    /**
+     * @return int
+     */
     public function countRunningWorkers()
     {
         $i = 0;
@@ -102,6 +121,9 @@ class WorkersPool
         return $i;
     }
 
+    /**
+     * @return int
+     */
     public function countIdleWorkers()
     {
         $i = 0;
@@ -111,13 +133,19 @@ class WorkersPool
         return $i;
     }
 
+    /**
+     *
+     */
     public function enableDataOverhead()
     {
         $this->dataOverhead = true;
     }
 
     /**
+     * @param $data
+     * @param bool $wait
      * @return null|boolean Null if not free workers available and $wait = false.
+     * @throws Exception
      */
     public function sendData($data, $wait = false)
     {
@@ -152,6 +180,9 @@ class WorkersPool
         }
     }
 
+    /**
+     *
+     */
     public function onSigUsr1()
     {
         // echo 'SIGUSR1'.PHP_EOL;
@@ -160,6 +191,9 @@ class WorkersPool
         }
     }
 
+    /**
+     *
+     */
     public function onSigUsr2()
     {
         // echo 'SIGUSR2'.PHP_EOL;
@@ -169,12 +203,20 @@ class WorkersPool
         }
     }
 
+    /**
+     *
+     */
     public function onSigChld()
     {
         // echo 'SIGCHLD -> SIGUSR2'.PHP_EOL;
         $this->onSigUsr2();
     }
 
+    /**
+     * @param bool $waitIfNeeded
+     * @return bool
+     * @throws Exception
+     */
     protected function checkSize($waitIfNeeded = false)
     {
         if ($this->newSize == $this->currentSize)
@@ -222,12 +264,15 @@ class WorkersPool
         $this->currentSize = count($this->workers);
     }
 
+    /**
+     * @throws Exception
+     */
     protected function emitNewWorker()
     {
         // if worker is a class
         if ($this->class) {
             $class_name = $this->class;
-            ($this->workers[] = new $class_name($this))->disableSelfManagment()->start();
+            ($this->workers[] = new $class_name($this))->disableSelfManagement()->start();
         }
         // if object
         else {
@@ -237,11 +282,17 @@ class WorkersPool
         $this->overheadCounters[] = 0;
     }
 
+    /**
+     * @return Worker[]
+     */
     public function getWorkers()
     {
         return $this->workers;
     }
 
+    /**
+     * @param array $trackers
+     */
     public function waitToFinish(array $trackers = [])
     {
         // convert seconds to wait units
@@ -266,8 +317,22 @@ class WorkersPool
         }
     }
 
+    /**
+     * @return array
+     */
     public function getOverheadCounters()
     {
         return $this->overheadCounters;
+    }
+
+    /**
+     * @return array
+     */
+    public function getWorkersStates()
+    {
+        $state = [];
+        foreach ($this->workers as $worker)
+            $state[] = $worker->state;
+        return $state;
     }
 }

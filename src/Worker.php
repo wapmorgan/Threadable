@@ -1,8 +1,9 @@
 <?php
 namespace wapmorgan\Threadable;
 
-use Exception;
-
+/**
+ * Class providing basic thread functionality
+ */
 class Worker
 {
     use Threadable;
@@ -13,25 +14,34 @@ class Worker
     const TERMINATED = 4;
 
     // shared preferences
-
     protected $useSignals = false;
-    protected $selfManaged = false;
+    protected $selfManaged = true;
 
     // parent properties
+    /** @var int Child (worker) process state */
     public $state = self::IDLE;
+
+    /** @var int Child (worker) process id */
     protected $pid;
+
+    /** @var resource Socket to child (worker) process */
     protected $toChild;
+
+    /** @var int Counter of remaining jobs */
     protected $dataCounter = 0;
 
-    /**
-     * Time between checks for new payload from parent
-     */
-    public $checkMicroTime = 100000;
-
     // child properties
+
+    /** @var int Id of parent process */
     protected $parentPid;
+    /** @var resource Socket to parent process */
     protected $toParent;
+
+    /** @var bool Indicator that SIGTERM has been received */
     protected $termAccepted = false;
+
+    /** @var int Time between checks for new payload from parent */
+    public $checkMicroTime = 100000;
 
     /**
      * Configures worker
@@ -41,12 +51,12 @@ class Worker
     }
 
     /**
-     * Disables self-managment. Use only if you manage workers via WorkersPool.
+     * Disables self-management. Use only if you manage workers via WorkersPool.
      */
-    public function disableSelfManagment()
+    public function disableSelfManagement()
     {
         $this->useSignals = true;
-        $this->selfManaged = true;
+        $this->selfManaged = false;
         return $this;
     }
 
@@ -59,6 +69,7 @@ class Worker
 
     /**
      * Starts a worker and begins listening for incoming payload
+     * @throws \Exception
      */
     public function start()
     {
@@ -117,7 +128,6 @@ class Worker
             pcntl_waitpid($this->pid, $status);
             $this->state = self::TERMINATED;
         } else {
-
             if (!is_dir('/proc/'.$this->pid))
                 $this->state = self::TERMINATED;
         }
@@ -148,6 +158,9 @@ class Worker
         return in_array($this->state, [self::RUNNING, self::IDLE]);
     }
 
+    /**
+     * @return array|mixed|null
+     */
     public function checkForFinish()
     {
         if (strlen($msg_size_bytes = socket_read($this->toChild, 4)) === 4) {
@@ -163,7 +176,7 @@ class Worker
             // mark as idle only if this last payload
             if ($this->dataCounter === 0)
                 $this->state = self::IDLE;
-            return true;
+            return $data;
         }
         return null;
     }
@@ -212,7 +225,7 @@ class Worker
 
     /**
      * The first method that is being called when the worker starts.
-     * @param socket $socket Socket to communicate with master process and transport payload / result.
+     * @param resource $socket Socket to communicate with master process and transport payload / result.
      * @param integer $parentPid The process ID of the parent
      */
     protected function onWorkerStart($socket, $parentPid)
@@ -264,8 +277,8 @@ class Worker
      */
     public function onPayload(array $payload)
     {
-        echo 'I\'m just a worker with pid '.getmypid().'. Got payload: '.$abc.PHP_EOL;
-        return 123;
+        echo 'I\'m just a worker with pid '.getmypid().'. Got payload: '.print_r($payload, true).PHP_EOL;
+        return true;
     }
 
 

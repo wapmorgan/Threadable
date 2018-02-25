@@ -11,10 +11,37 @@ use Exception;
  */
 class DownloadWorker extends Worker
 {
-    public function onPayload($data)
+    /**
+     * @param array $data
+     * @return bool
+     * @throws Exception
+     */
+    public function onPayload(array $data)
     {
         if (empty($data['source']) || empty($data['target']))
-            throw new Exception();
+            throw new Exception('Payload should contain two elements: `source` - file URL, `target` - place to save.');
+
         return copy($data['source'], $data['target']);
+    }
+
+    /**
+     * @param $path
+     * @return int
+     * @throws Exception
+     */
+    static public function getRemoteFileSize($path)
+    {
+        $fp = fopen($path, 'r');
+        $inf = stream_get_meta_data($fp);
+        fclose($fp);
+
+        foreach($inf['wrapper_data'] as $v) {
+            if (stristr($v,'content-length')) {
+                $v = explode(":",$v);
+                return (int)trim($v[1]);
+            }
+        }
+
+        throw new Exception('Can not determine size of remote file');
     }
 }

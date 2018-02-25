@@ -7,17 +7,7 @@ require_once __DIR__.'/../vendor/autoload.php';
 pcntl_signal(SIGUSR1, function () {});
 pcntl_signal(SIGUSR2, function () {});
 
-class CpuEatingWorker extends Worker
-{
-    public function onPayload(array $abc)
-    {
-        echo 'new iteration'.PHP_EOL;
-        $till = microtime(true) + 5;
-        while (microtime(true) < $till) {
 
-        }
-    }
-}
 
 function waitUntilFinish(Worker $worker)
 {
