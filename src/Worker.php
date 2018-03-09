@@ -197,9 +197,9 @@ class Worker
 
     /**
      * Sends payload to worker
-     * @param array $data
+     * @param mixed $data
      */
-    public function sendPayload(array $data)
+    public function sendPayload($data)
     {
         $this->dataCounter++;
         // echo 'It is '.$this->dataCounter.' payload for '.$this->pid.PHP_EOL;
@@ -275,7 +275,7 @@ class Worker
     /**
      * The main handler and work executor in worker. Accepts all payload and should do all the work to process it.
      */
-    public function onPayload(array $payload)
+    public function onPayload($payload)
     {
         echo 'I\'m just a worker with pid '.getmypid().'. Got payload: '.print_r($payload, true).PHP_EOL;
         return true;
