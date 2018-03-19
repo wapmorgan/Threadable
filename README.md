@@ -297,6 +297,36 @@ As you can see, we got few improvements:
 
 **Warning about worker re-using!** You can't restart a worker that has been terminated (with `stop()` or `kill()`), you need to create new worker and start it with `start()`.
 
+### Shortcut for simple tasks
+You can call to a shortcut `Worker::doInBackround(array $payloads, $payloadWorkingCallback, $payloadFinishedCallback)` to provide some interface for user when real works is in background.
+
+Example of downloading files in background and showing progress (file `bin/example_file_downloading_easy`):
+
+```php
+$file_sources = ['https://yandex.ru/images/today?size=1920x1080', 'http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip'];
+$files = [];
+foreach ($file_sources as $file_to_download) {
+    $files[] = [
+        'source' => $file_to_download,
+        'size' => DownloadWorker::getRemoteFileSize($file_to_download),
+        'target' => tempnam(sys_get_temp_dir(), 'thrd_test'),
+    ];
+}
+
+DownloadWorker::doInBackground($files, function ($payloadI, $payloadData) {
+    clearstatcache(true, $payloadData['target']);
+    echo "\r".'#'.($payloadI+1).'. '.basename($payloadData['source']).' downloading '.round(filesize($payloadData['target']) * 100 / $payloadData['size'], 2).'%';
+}, function ($payloadI, $payloadData, $payloadResult) {
+    echo "\r".'#'.($payloadI+1).'. '.basename($payloadData['source']).' successfully downloaded' . PHP_EOL;
+    return true;
+});
+
+foreach ($files as $file)
+    unlink($file['target']);
+```
+
+This example downloads all files in background and showing progress of current downloading file and shows a message when a job is done. 
+
 ## WorkersPool features
 
 - `countIdleWorkers(): integer` - returns number of workers that are in `Worker::IDLE` state.

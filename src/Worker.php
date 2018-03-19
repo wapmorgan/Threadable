@@ -28,7 +28,13 @@ class Worker
     protected $toChild;
 
     /** @var int Counter of remaining jobs */
-    protected $dataCounter = 0;
+    protected $remainingPayloadsCounter = 0;
+
+    /** @var int Count of sent jobs */
+    protected $sentPayloadsCounter = 0;
+
+    /** @var int Count of handled jobs */
+    protected $reportedPayloadsCounter = 0;
 
     // child properties
 
@@ -42,6 +48,45 @@ class Worker
 
     /** @var int Time between checks for new payload from parent */
     public $checkMicroTime = 100000;
+
+    /**
+     * @param array $payloads An array of all payloads to worker
+     * @param null $payloadHandlingCallback
+     * @param callable|null $onPayloadFinishCallback Callback that should be called every time one payload is fully handled with worker output.
+     *                      Also, this callback should return either true or false to indicate that work done right.
+     *                      This affects result of doInBackground() call.
+     * @param int $sleepMicroTime Time between checks for worker state (in milliseconds)
+     * @return bool True if all payloads successfully handled.
+     * @throws \Exception
+     */
+    public static function doInBackground(array $payloads, $payloadHandlingCallback = null,
+                                          $onPayloadFinishCallback = null, $sleepMicroTime = 1000)
+    {
+        $worker = new static();
+        $worker->start();
+        foreach ($payloads as $i => $payload)
+            $worker->sendPayload($payload);
+
+        $result = true;
+
+        while ($worker->isRunning()) {
+            // worker done a job
+            if (($payload_result = $worker->checkForFinish()) !== null) {
+                if ($onPayloadFinishCallback !== null)
+                    $result = call_user_func($onPayloadFinishCallback, key($payloads), current($payloads), $payload_result[1]) && $result;
+                else
+                    $result = (boolean)$payload_result[1] && $result;
+                next($payloads);
+            } else
+                call_user_func($payloadHandlingCallback, key($payloads), current($payloads));
+
+            usleep($sleepMicroTime);
+        }
+
+        $worker->stop(true);
+
+        return $result;
+    }
 
     /**
      * Configures worker
@@ -171,12 +216,13 @@ class Worker
             $msg = socket_read($this->toChild, $msg_size);
             $data = unserialize($msg);
             // echo '[Finish] Msg: '.print_r($msg, true).PHP_EOL;
-            $this->dataCounter--;
+            $this->remainingPayloadsCounter--;
 
             // mark as idle only if this last payload
-            if ($this->dataCounter === 0)
+            if ($this->remainingPayloadsCounter === 0)
                 $this->state = self::IDLE;
-            return $data;
+
+            return [$this->reportedPayloadsCounter++, $data];
         }
         return null;
     }
@@ -198,17 +244,19 @@ class Worker
     /**
      * Sends payload to worker
      * @param mixed $data
+     * @return int Serial number of payload
      */
     public function sendPayload($data)
     {
-        $this->dataCounter++;
-        // echo 'It is '.$this->dataCounter.' payload for '.$this->pid.PHP_EOL;
+        $this->remainingPayloadsCounter++;
         $this->state = self::RUNNING;
 
         $data = serialize($data);
         // write payload to socket
         socket_write($this->toChild, pack('N', strlen($data)));
         socket_write($this->toChild, $data);
+
+        return $this->sentPayloadsCounter++;
     }
 
     /**

@@ -16,12 +16,17 @@ class DownloadWorker extends Worker
      * @return bool
      * @throws Exception
      */
-    public function onPayload(array $data)
+    public function onPayload($data)
     {
         if (empty($data['source']) || empty($data['target']))
             throw new Exception('Payload should contain two elements: `source` - file URL, `target` - place to save.');
 
-        return copy($data['source'], $data['target']);
+        $size = self::getRemoteFileSize($data['source']);
+
+        if (copy($data['source'], $data['target']) === false)
+            return false;
+
+        return filesize($data['target']) === $size;
     }
 
     /**

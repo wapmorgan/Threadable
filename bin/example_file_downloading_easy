@@ -1,0 +1,27 @@
+#!/usr/bin/env php
+<?php
+use wapmorgan\Threadable\DownloadWorker;
+require_once __DIR__.'/../vendor/autoload.php';
+
+$file_sources = ['https://yandex.ru/images/today?size=1920x1080', 'http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip'];
+$files = [];
+foreach ($file_sources as $file_to_download) {
+    $files[] = [
+        'source' => $file_to_download,
+        'size' => DownloadWorker::getRemoteFileSize($file_to_download),
+        'target' => tempnam(sys_get_temp_dir(), 'thrd_test'),
+    ];
+}
+
+DownloadWorker::doInBackground($files, function ($payloadI, $payloadData) {
+    clearstatcache(true, $payloadData['target']);
+    echo "\r".'#'.($payloadI+1).'. '.basename($payloadData['source']).' downloading '.round(filesize($payloadData['target']) * 100 / $payloadData['size'], 2).'%';
+}, function ($payloadI, $payloadData, $payloadResult) {
+    echo "\r".'#'.($payloadI+1).'. '.basename($payloadData['source']).' successfully downloaded' . PHP_EOL;
+    return true;
+});
+
+foreach ($files as $file)
+    unlink($file['target']);
+
+
