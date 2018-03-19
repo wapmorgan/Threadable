@@ -1,5 +1,7 @@
 #!/usr/bin/env php
 <?php
+
+use wapmorgan\Threadable\BackgroundWork;
 use wapmorgan\Threadable\DownloadWorker;
 require_once __DIR__.'/../vendor/autoload.php';
 
@@ -13,11 +15,11 @@ foreach ($file_sources as $file_to_download) {
     ];
 }
 
-DownloadWorker::doInBackground($files, function ($payloadI, $payloadData) {
+BackgroundWork::doInBackground(new DownloadWorker(), $files, function ($payloadI, $payloadData) {
     clearstatcache(true, $payloadData['target']);
-    echo "\r".'#'.($payloadI+1).'. '.basename($payloadData['source']).' downloading '.round(filesize($payloadData['target']) * 100 / $payloadData['size'], 2).'%';
+    echo "\r" . '#' . ($payloadI + 1) . '. ' . basename($payloadData['source']) . ' downloading ' . round(filesize($payloadData['target']) * 100 / $payloadData['size'], 2) . '%';
 }, function ($payloadI, $payloadData, $payloadResult) {
-    echo "\r".'#'.($payloadI+1).'. '.basename($payloadData['source']).' successfully downloaded' . PHP_EOL;
+    echo "\r" . '#' . ($payloadI + 1) . '. ' . basename($payloadData['source']) . ' successfully downloaded' . PHP_EOL;
     return true;
 });
 

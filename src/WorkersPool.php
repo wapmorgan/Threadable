@@ -13,22 +13,25 @@ use Exception;
  */
 class WorkersPool
 {
-    /** @var int Timeout for resize operations */
-    public $checkTime = 1;
-
     /**
      * One wait-unit - 100 msec.
      */
     const WAIT_UNIT_MILLITIME = 100;
+
+    /** @var int Timeout for resize operations */
+    public $checkTime = 1;
+
+    /** @var integer Milliseconds between checks for free workers */
+    public $waitPeriod = 100;
 
     /** @var string Worker class name */
     protected $class;
 
     /** @var object Worker object */
     protected $object;
-
     /** @var int Current size of pool. Used in setPollSize() */
     protected $currentSize = 0;
+
     /** @var int New size of pool. Used in setPollSize() */
     protected $newSize = 0;
 
@@ -44,8 +47,8 @@ class WorkersPool
     /** @var int Id of master thread process. Contains id of process, in which WorkersPool object was created */
     protected $masterThreadId;
 
-    /** @var integer Milliseconds between checks for free workers */
-    public $waitPeriod = 100;
+    /** @var null|callable Callback that runs when one of workers finish working on payload */
+    protected $payloadFinishCallback;
 
     /**
      * WorkersPool constructor.
@@ -134,17 +137,27 @@ class WorkersPool
     }
 
     /**
-     *
+     * @return $this
      */
     public function enableDataOverhead()
     {
         $this->dataOverhead = true;
+        return $this;
+    }
+
+    /**
+     * @return $this
+     */
+    public function disableDataOverhead()
+    {
+        $this->dataOverhead = false;
+        return $this;
     }
 
     /**
      * @param $data
      * @param bool $wait
-     * @return null|boolean Null if not free workers available and $wait = false.
+     * @return array|null
      * @throws Exception
      */
     public function sendData($data, $wait = false)
@@ -164,7 +177,7 @@ class WorkersPool
             if ($worker->state == Worker::IDLE) {
                 if ($this->overheadCounters[$i] > 0)
                     $this->overheadCounters[$i] = 0;
-                return $worker->sendPayload($data);
+                return [$worker, $worker->sendPayload($data)];
             }
         }
 
@@ -174,10 +187,23 @@ class WorkersPool
                 if ($this->workers[$i]->isActive()) {
                     // echo 'Sending overhead data to '.$this->workers[$i]->getPid().PHP_EOL;
                     $this->overheadCounters[$i]++;
-                    return $this->workers[$i]->sendPayload($data);
+                    return [$this->workers[$i], $this->workers[$i]->sendPayload($data)];
                 }
             }
         }
+    }
+
+    /**
+     * @param null|callable $callback
+     * @return $this
+     * @throws Exception
+     */
+    public function registerOnPayloadFinishCallback($callback)
+    {
+        if ($callback !== null && !is_callable($callback))
+            throw new Exception('Can not use '.print_r($callback, true).' as callback');
+        $this->payloadFinishCallback = $callback;
+        return $this;
     }
 
     /**
@@ -186,8 +212,11 @@ class WorkersPool
     public function onSigUsr1()
     {
         // echo 'SIGUSR1'.PHP_EOL;
-        foreach ($this->workers as $worker) {
-            $worker->checkForFinish();
+        foreach ($this->workers as $i => $worker) {
+            if (($payload_result = $worker->checkForFinish()) !== null) {
+                if ($this->payloadFinishCallback !== null)
+                    call_user_func($this->payloadFinishCallback, $worker, $payload_result);
+            }
         }
     }
 

@@ -298,7 +298,7 @@ As you can see, we got few improvements:
 **Warning about worker re-using!** You can't restart a worker that has been terminated (with `stop()` or `kill()`), you need to create new worker and start it with `start()`.
 
 ### Shortcut for simple tasks
-You can call to a shortcut `Worker::doInBackround(array $payloads, $payloadWorkingCallback, $payloadFinishedCallback)` to provide some interface for user when real works is in background.
+You can call to a shortcut `BackgroundWork::doInBackround(Worker $worker, array $payloads, $payloadWorkingCallback, $payloadFinishedCallback)` to provide some interface for user when real works is in background.
 
 Example of downloading files in background and showing progress (file `bin/example_file_downloading_easy`):
 
@@ -313,7 +313,7 @@ foreach ($file_sources as $file_to_download) {
     ];
 }
 
-DownloadWorker::doInBackground($files, function ($payloadI, $payloadData) {
+BackgroundWork::doInBackground(new DownloadWorker(), $files, function ($payloadI, $payloadData) {
     clearstatcache(true, $payloadData['target']);
     echo "\r".'#'.($payloadI+1).'. '.basename($payloadData['source']).' downloading '.round(filesize($payloadData['target']) * 100 / $payloadData['size'], 2).'%';
 }, function ($payloadI, $payloadData, $payloadResult) {

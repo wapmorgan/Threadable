@@ -50,45 +50,6 @@ class Worker
     public $checkMicroTime = 100000;
 
     /**
-     * @param array $payloads An array of all payloads to worker
-     * @param null $payloadHandlingCallback
-     * @param callable|null $onPayloadFinishCallback Callback that should be called every time one payload is fully handled with worker output.
-     *                      Also, this callback should return either true or false to indicate that work done right.
-     *                      This affects result of doInBackground() call.
-     * @param int $sleepMicroTime Time between checks for worker state (in milliseconds)
-     * @return bool True if all payloads successfully handled.
-     * @throws \Exception
-     */
-    public static function doInBackground(array $payloads, $payloadHandlingCallback = null,
-                                          $onPayloadFinishCallback = null, $sleepMicroTime = 1000)
-    {
-        $worker = new static();
-        $worker->start();
-        foreach ($payloads as $i => $payload)
-            $worker->sendPayload($payload);
-
-        $result = true;
-
-        while ($worker->isRunning()) {
-            // worker done a job
-            if (($payload_result = $worker->checkForFinish()) !== null) {
-                if ($onPayloadFinishCallback !== null)
-                    $result = call_user_func($onPayloadFinishCallback, key($payloads), current($payloads), $payload_result[1]) && $result;
-                else
-                    $result = (boolean)$payload_result[1] && $result;
-                next($payloads);
-            } else
-                call_user_func($payloadHandlingCallback, key($payloads), current($payloads));
-
-            usleep($sleepMicroTime);
-        }
-
-        $worker->stop(true);
-
-        return $result;
-    }
-
-    /**
      * Configures worker
      */
     public function __construct()
