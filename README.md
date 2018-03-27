@@ -29,8 +29,6 @@ All you need to have installed:
 6. Use cases
 
 # Structure
-## What is a Threadable?
-**Threadable** - is a trait for adding fork'ing functionality to any class. It's used in `Worker` class.
 
 ## What is a Worker?
 **Worker** - is a basic class for any worker. It is composed of two substances (physically, stored in one class, but providing different functionalities):
@@ -40,7 +38,7 @@ All you need to have installed:
 
 ### How to create your Worker
 
-The all you need it to inherit `Worker` class (full name is _wapmorgan\Threadable\Worker_) and redefine `onPayload($data)` public method.
+The all you need it to extend `wapmorgan\Threadable\Worker` class and reimplement `onPayload($data)` public method.
 
 For example:
 ```php
@@ -52,6 +50,8 @@ class SleepingWorker extends Worker
         echo 'I have started at '.date('r').PHP_EOL;
         sleep(3);
         echo 'I have ended at '.date('r').PHP_EOL;
+        
+        return true;
     }
 }
 ```
@@ -324,7 +324,7 @@ $pool->setPoolSize(2);
 // dispatch payload to workers. Notice! WorkersPool uses sendData() method instead of sendPayload().
 foreach ($files as $file) {
     echo 'Enqueuing '.$file[0].' with size '.$file[1].PHP_EOL;
-    $pool->sendData([$file]);
+    $pool->sendData($file);
 }
 
 // register tracker, which should be launched every 0.5 seconds.
@@ -365,19 +365,30 @@ As you can see, we got few improvements:
 3. We don't take care of worker termination anymore. Let WorkersPool work for us.
 
 # API
-## Worker secrets and important methods
+## Worker API
 
-- `stop($wait = false)` - sends stop command to worker thread. It uses _SIGTERM_ signal to allow worker thread finish work correctly and don't lose any data. If `$wait = true`, holds the execution until the worker is down.
-- `kill($wait = false)` - sends stop command to worker thread. It uses _SIGKILL_ signal and not recommended except special cases, because it simply kills the worker thread and it loses all data being processed in that moment. If `$wait = true`, holds the execution until the worker is down.
+- `sendPayload($data): int` - sends payload to worker and returns serial id for payload.
+- `checkForFinish(): array|null` - checks if worker sent result of payload and returns it in this case.
+- `checkForTermination(): boolean|null` - returns true if worker process has died.
+- `stop($wait = false): boolean` - sends stop command to worker thread. It uses _SIGTERM_ signal to allow worker thread finish work correctly and don't lose any data. If `$wait = true`, holds the execution until the worker is down.
+- `kill($wait = false): boolean` - sends stop command to worker thread. It uses _SIGKILL_ signal and not recommended except special cases, because it simply kills the worker thread and it loses all data being processed in that moment. If `$wait = true`, holds the execution until the worker is down.
+
+Information:
+- `isActive(): boolean` - true if worker is in `Worker::RUNNING` or `Worker::IDLE` states.
+- `isRunning(): boolean` - true if worker is in `Worker::RUNNING` state.
+- `isIdle(): boolean` - true if worker is in `Worker::IDLE` state.
+- `getPid(): int` - returns process id of worker.
+- `getCurrentPayload(): int` - returns serial number of last done payload.
 
 **Warning about worker re-using!** You can't restart a worker that has been terminated (with `stop()` or `kill()`), you need to create new worker and start it with `start()`.
 
-## WorkersPool features
+## WorkersPool API
 
 - `countIdleWorkers(): integer` - returns number of workers that are in `Worker::IDLE` state.
 - `countRunningWorkers(): integer` - returns number of workers that are in `Worker::RUNNING` state.
 - `countActiveWorkers(): integer` - returns number of workers that are either in `Worker::RUNNING` or `Worker::IDLE` states.
-- `enableDataOverhead()` - enables _dataOverhead_-mode.
+- `getRunningWorkers(): Worker[]` - returns workers that are in `Worker::RUNNING` state.
+- `enableDataOverhead()` / `disableDataOverhead()` - enables/disables _dataOverhead_-mode.
 - `sendData($data, $wait = false): null|boolean` - dispatches payload to any free worker. Behavior depends on _dataOverhead_ feature status:
     - When _dataOverhead_ is disabled and `$wait = false` (by default), this method returns `null` when no free workers available or `boolean` with status of dispatching (`true/false`).
     - When _dataOverhead_ is disabled (by default) and `$wait = true`, this method will hold the execution of the script until any worker became free, dispatch your payload to it and return the status of dispatching (`true/false`).
