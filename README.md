@@ -17,15 +17,16 @@ All you need to have installed:
     - What is a `Worker`?
         * How to create your Worker
     - What is a `WorkersPool`?
-2. How to use
+2. Simple usage
+3. How it works
     - One worker
     - Few workers with `WorkersPool`
-3. API
+4. API
     - `Worker` secrets and important methods
     - `WorkersPool` features
-4. Predefined workers
+5. Predefined workers
     - `DownloadWorker`
-5. Use cases
+6. Use cases
 
 # Structure
 ## What is a Threadable?
