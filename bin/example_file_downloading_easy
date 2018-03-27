@@ -7,7 +7,7 @@ use wapmorgan\Threadable\Worker;
 
 require_once __DIR__.'/../vendor/autoload.php';
 
-$file_sources = ['https://yandex.ru/images/today?size=1920x1080', 'http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip'];
+$file_sources = ['https://yandex.ru/images/today?size=1920x1080', 'http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip', 'http://soft.eurodir.ru/test-speed-100Mb.bin'];
 $files = [];
 foreach ($file_sources as $file_to_download) {
     $files[] = [
@@ -17,15 +17,16 @@ foreach ($file_sources as $file_to_download) {
     ];
 }
 
-BackgroundWork::doInBackground(new DownloadWorker(), $files, function (Worker $worker, $payloadI, $payloadData) {
+$result = BackgroundWork::doInBackground(new DownloadWorker(), $files, function (Worker $worker, $payloadI, $payloadData) {
     clearstatcache(true, $payloadData['target']);
     echo "\r" . '#' . ($payloadI + 1) . '. ' . basename($payloadData['source']) . ' downloading ' . round(filesize($payloadData['target']) * 100 / $payloadData['size'], 2) . '%';
 }, function (Worker $worker, $payloadI, $payloadData, $payloadResult) {
-    echo "\r" . '#' . ($payloadI + 1) . '. ' . basename($payloadData['source']) . ' successfully downloaded' . PHP_EOL;
+    echo "\r" . '#' . ($payloadI + 1) . '. ' . basename($payloadData['source']) . ' successfully downloaded (size '.filesize($payloadData['target']).')' . PHP_EOL;
     return true;
 });
 
+if ($result)
+    echo 'All files downloaded successfully'.PHP_EOL;
+
 foreach ($files as $file)
-    unlink($file['target']);
-
-
+    if (file_exists($file['target'])) unlink($file['target']);

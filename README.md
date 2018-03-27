@@ -13,7 +13,6 @@ All you need to have installed:
 [![License](https://poser.pugx.org/wapmorgan/threadable/license)](https://packagist.org/packages/wapmorgan/threadable)
 
 1. Structure
-    - What is a `Threadable`?
     - What is a `Worker`?
         * How to create your Worker
     - What is a `WorkersPool`?
@@ -22,8 +21,8 @@ All you need to have installed:
     - One worker
     - Few workers with `WorkersPool`
 4. API
-    - `Worker` secrets and important methods
-    - `WorkersPool` features
+    - `Worker` API
+    - `WorkersPool` API
 5. Predefined workers
     - `DownloadWorker`
 6. Use cases
@@ -61,7 +60,7 @@ class SleepingWorker extends Worker
 It takes care of all maintenance, payload dispatching and life-cycle of workers. Allows you change the size of the pool dynamically and other useful stuff.
 
 # Simple usage
-For example, you want to background downloading work. Let's use `BackgroundWork` class to background it and show progress for user (or store in DB/...).
+For example, you want to just background downloading work. Let's use `wapmorgan\Threadable\BackgroundWork` class to background it and show progress for user (or store in DB/...).
 
 Everything you need to do:
 1. Prepare payloads for `DownloadWorker`
@@ -72,6 +71,10 @@ Everything you need to do:
 `DownloadWorker` needs an array with `source` and `target` elements. Prepare it:
 
 ```php
+use wapmorgan\Threadable\BackgroundWork;
+use wapmorgan\Threadable\DownloadWorker;
+use wapmorgan\Threadable\Worker;
+
 $file_sources = ['https://yandex.ru/images/today?size=1920x1080', 'http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip'];
 $files = [];
 foreach ($file_sources as $file_to_download) {
@@ -85,6 +88,7 @@ foreach ($file_sources as $file_to_download) {
 
 ## Stage 2. Launching in background
 
+### One-thread worker
 Run it in one thread with `doInBackground` function. Signature is following:
 
 `doInBackground(Worker $worker,
@@ -97,10 +101,10 @@ Run it in one thread with `doInBackground` function. Signature is following:
 - `$payloads` - an array of all payloads.
 - `$payloadHandlingCallback` - a callback that will be called every `$sleepMicrotime` microseconds with information about currently running payload.
     Signature for callback: `(Worker $worker, int $payloadI, $payloadData)`
--  `$onPayloadFinishCallback` - a callback that will be called when worker ends with one payload.
+- `$onPayloadFinishCallback` - a callback that will be called when worker ends with one payload.
     Signature for callback: `(Worker $worker, int $payloadI, $payloadData, $payloadResult)`
 
-So, collect all information run it:
+So, collect all information to run it:
 
 ```php
 $result = BackgroundWork::doInBackground(new DownloadWorker(), $files,
@@ -119,7 +123,9 @@ if ($result)
 
 Example is in `bin/example_file_downloading_easy` file.
 
-To run in in few threads use `doInBackgroundParallel` function with signature:
+### Few-threads worker
+
+To run it in few threads use `doInBackgroundParallel`. It has almost the same signature as one-thread function:
 
 `doInBackgroundParallel(Worker $worker,
     array $payloads,
@@ -127,6 +133,8 @@ To run in in few threads use `doInBackgroundParallel` function with signature:
     callable $onPayloadFinishCallback = null,
     $sleepMicroTime = 1000,
     $poolSize = self::BY_CPU_NUMBER)`
+
+By adjusting `$poolSize` you can select number of workers that should be used.
 
 Example is in `bin/example_file_downloading_pool_easy` file.
 

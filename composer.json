@@ -12,7 +12,8 @@
     ],
     "require": {
         "ext-posix": "*",
-        "ext-pcntl": "*"
+        "ext-pcntl": "*",
+        "ext-sockets": "*"
     },
     "require-dev": {
         "phpunit/phpunit": "~4.8"
