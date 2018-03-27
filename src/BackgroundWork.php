@@ -45,18 +45,19 @@ class BackgroundWork
         return $result;
     }
 
-	/**
-	 * @param Worker $worker
-	 * @param array $payloads An array of all payloads to worker
-	 * @param null $payloadHandlingCallback Callback that will be called every $sleepMicrotime seconds for every running worker at that monent.
-	 *                        Should have signature: callback(Worker $worker, $payloadNumber, $payload)
-	 * @param callable|null $onPayloadFinishCallback Callback that should be called every time one payload is fully handled with worker output.
-	 *                      Also, this callback should return either true or false to indicate that work done right.
-	 *                      This affects result of doInBackground() call.
-	 * @param int $sleepMicroTime Time between checks for worker state (in milliseconds)
-	 * @param int $poolSize Size of worker's pool. If one of BackgroundWork constants, will be calculated automatically.
-	 * @return bool True if all payloads successfully handled.
-	 */
+    /**
+     * @param Worker $worker
+     * @param array $payloads An array of all payloads to worker
+     * @param null $payloadHandlingCallback Callback that will be called every $sleepMicrotime seconds for every running worker at that monent.
+     *                        Should have signature: callback(Worker $worker, $payloadNumber, $payload)
+     * @param callable|null $onPayloadFinishCallback Callback that should be called every time one payload is fully handled with worker output.
+     *                      Also, this callback should return either true or false to indicate that work done right.
+     *                      This affects result of doInBackground() call.
+     * @param int $sleepMicroTime Time between checks for worker state (in milliseconds)
+     * @param int $poolSize Size of worker's pool. If one of BackgroundWork constants, will be calculated automatically.
+     * @return bool True if all payloads successfully handled.
+     * @throws \Exception
+     */
     public static function doInBackgroundParallel(Worker $worker, array $payloads, $payloadHandlingCallback = null,
                                           $onPayloadFinishCallback = null, $sleepMicroTime = 1000, $poolSize = self::BY_CPU_NUMBER)
     {
@@ -76,9 +77,10 @@ class BackgroundWork
 
         $result = true;
 
-        $workers_pool->registerOnPayloadFinishCallback(function (Worker $worker, array $payloadResult)
-        use ($current_payloads, $onPayloadFinishCallback, $payloads, &$result) {
-            $result = call_user_func($onPayloadFinishCallback, $worker, $current_payloads[$worker->getPid()], $payloads[$current_payloads[$worker->getPid()]], $payloadResult) && $result;
+        $workers_pool->registerOnPayloadFinishCallback(function (Worker $worker, $payloadI, $payloadResult)
+        use ($current_payloads, $onPayloadFinishCallback, $payloads, &$result, &$dispatched_payloads) {
+            $worker_payload = $dispatched_payloads[$worker->getPid()][$payloadI];
+            $result = call_user_func($onPayloadFinishCallback, $worker, $worker_payload, $payloads[$worker_payload], $payloadResult) && $result;
             unset($current_payloads[$worker->getPid()]);
         });
 
@@ -94,7 +96,7 @@ class BackgroundWork
 		while ($workers_pool->countRunningWorkers() > 0) {
 			if ($payloadHandlingCallback !== null) {
 				foreach ($workers_pool->getRunningWorkers() as $runningWorker) {
-					$worker_payload = $payloads[$dispatched_payloads[$runningWorker->getPid()][$runningWorker->getCurrentPayload()]];
+                    $worker_payload = $dispatched_payloads[$runningWorker->getPid()][$runningWorker->getCurrentPayload()];
 					call_user_func($payloadHandlingCallback, $runningWorker, $worker_payload, $payloads[$worker_payload]);
 				}
 			}

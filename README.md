@@ -1,7 +1,11 @@
 # Threadable
 
-Easy-to-use threading library providing all basic features to run your code in parallel mode.
-All you need to have installed: _pcntl_ and _posix_ extensions.
+Easy-to-use threading library providing all basic features to perform work in background mode.
+
+All you need to have installed:
+- _pcntl_
+- _posix_
+- _sockets_
 
 [![Composer package](http://composer.network/badge/wapmorgan/threadable)](https://packagist.org/packages/wapmorgan/threadable)
 [![Latest Stable Version](https://poser.pugx.org/wapmorgan/threadable/v/stable)](https://packagist.org/packages/wapmorgan/threadable)
@@ -55,7 +59,77 @@ class SleepingWorker extends Worker
 **WorkersPool** (_wapmorgan\Threadable\WorkersPool_) - is a container for `Worker`'s, intended for handling similar tasks.
 It takes care of all maintenance, payload dispatching and life-cycle of workers. Allows you change the size of the pool dynamically and other useful stuff.
 
-# How to use
+# Simple usage
+For example, you want to background downloading work. Let's use `BackgroundWork` class to background it and show progress for user (or store in DB/...).
+
+Everything you need to do:
+1. Prepare payloads for `DownloadWorker`
+2. Launch `BackgroundWork::doInBackground()` or `BackgroundWork::doInBackgroundParallel()` for one thread or few threads respectively.
+
+## Stage 1. Preparing payloads
+
+`DownloadWorker` needs an array with `source` and `target` elements. Prepare it:
+
+```php
+$file_sources = ['https://yandex.ru/images/today?size=1920x1080', 'http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip'];
+$files = [];
+foreach ($file_sources as $file_to_download) {
+    $files[] = [
+        'source' => $file_to_download,
+        'size' => DownloadWorker::getRemoteFileSize($file_to_download),
+        'target' => tempnam(sys_get_temp_dir(), 'thrd_test'),
+    ];
+}
+```
+
+## Stage 2. Launching in background
+
+Run it in one thread with `doInBackground` function. Signature is following:
+
+`doInBackground(Worker $worker,
+    array $payloads,
+    callable $payloadHandlingCallback = null,
+    callable $onPayloadFinishCallback = null,
+    $sleepMicroTime = 1000)`
+
+- `$worker` - an instance of worker.
+- `$payloads` - an array of all payloads.
+- `$payloadHandlingCallback` - a callback that will be called every `$sleepMicrotime` microseconds with information about currently running payload.
+    Signature for callback: `(Worker $worker, int $payloadI, $payloadData)`
+-  `$onPayloadFinishCallback` - a callback that will be called when worker ends with one payload.
+    Signature for callback: `(Worker $worker, int $payloadI, $payloadData, $payloadResult)`
+
+So, collect all information run it:
+
+```php
+$result = BackgroundWork::doInBackground(new DownloadWorker(), $files,
+    function (Worker $worker, $payloadI, $payloadData) {
+        clearstatcache(true, $payloadData['target']);
+        echo "\r" . '#' . ($payloadI + 1) . '. ' . basename($payloadData['source']) . ' downloading ' . round(filesize($payloadData['target']) * 100 / $payloadData['size'], 2) . '%';
+    },
+    function (Worker $worker, $payloadI, $payloadData, $payloadResult) {
+        echo "\r" . '#' . ($payloadI + 1) . '. ' . basename($payloadData['source']) . ' successfully downloaded' . PHP_EOL;
+        return true;
+    }
+);
+if ($result)
+    echo 'All files downloaded successfully'.PHP_EOL;
+```
+
+Example is in `bin/example_file_downloading_easy` file.
+
+To run in in few threads use `doInBackgroundParallel` function with signature:
+
+`doInBackgroundParallel(Worker $worker,
+    array $payloads,
+    callable $payloadHandlingCallback = null,
+    callable $onPayloadFinishCallback = null,
+    $sleepMicroTime = 1000,
+    $poolSize = self::BY_CPU_NUMBER)`
+
+Example is in `bin/example_file_downloading_pool_easy` file.
+
+# How it works
 
 ## One worker
 
@@ -296,36 +370,6 @@ As you can see, we got few improvements:
 - `kill($wait = false)` - sends stop command to worker thread. It uses _SIGKILL_ signal and not recommended except special cases, because it simply kills the worker thread and it loses all data being processed in that moment. If `$wait = true`, holds the execution until the worker is down.
 
 **Warning about worker re-using!** You can't restart a worker that has been terminated (with `stop()` or `kill()`), you need to create new worker and start it with `start()`.
-
-### Shortcut for simple tasks
-You can call to a shortcut `BackgroundWork::doInBackround(Worker $worker, array $payloads, $payloadWorkingCallback, $payloadFinishedCallback)` to provide some interface for user when real works is in background.
-
-Example of downloading files in background and showing progress (file `bin/example_file_downloading_easy`):
-
-```php
-$file_sources = ['https://yandex.ru/images/today?size=1920x1080', 'http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip'];
-$files = [];
-foreach ($file_sources as $file_to_download) {
-    $files[] = [
-        'source' => $file_to_download,
-        'size' => DownloadWorker::getRemoteFileSize($file_to_download),
-        'target' => tempnam(sys_get_temp_dir(), 'thrd_test'),
-    ];
-}
-
-BackgroundWork::doInBackground(new DownloadWorker(), $files, function ($payloadI, $payloadData) {
-    clearstatcache(true, $payloadData['target']);
-    echo "\r".'#'.($payloadI+1).'. '.basename($payloadData['source']).' downloading '.round(filesize($payloadData['target']) * 100 / $payloadData['size'], 2).'%';
-}, function ($payloadI, $payloadData, $payloadResult) {
-    echo "\r".'#'.($payloadI+1).'. '.basename($payloadData['source']).' successfully downloaded' . PHP_EOL;
-    return true;
-});
-
-foreach ($files as $file)
-    unlink($file['target']);
-```
-
-This example downloads all files in background and showing progress of current downloading file and shows a message when a job is done. 
 
 ## WorkersPool features
 

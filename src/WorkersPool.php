@@ -207,7 +207,7 @@ class WorkersPool
     }
 
     /**
-     * @param null|callable $callback
+     * @param null|callable $callback Callable should have signature (payload_i, payload_result)
      * @return $this
      * @throws Exception
      */
@@ -228,7 +228,7 @@ class WorkersPool
         foreach ($this->workers as $i => $worker) {
             if (($payload_result = $worker->checkForFinish()) !== null) {
                 if ($this->payloadFinishCallback !== null)
-                    call_user_func($this->payloadFinishCallback, $worker, $payload_result);
+                    call_user_func($this->payloadFinishCallback, $worker, $payload_result[0], $payload_result[1]);
             }
         }
     }
