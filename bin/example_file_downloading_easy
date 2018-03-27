@@ -15,10 +15,10 @@ foreach ($file_sources as $file_to_download) {
     ];
 }
 
-BackgroundWork::doInBackground(new DownloadWorker(), $files, function ($payloadI, $payloadData) {
+BackgroundWork::doInBackground(new DownloadWorker(), $files, function (Worker $worker, $payloadI, $payloadData) {
     clearstatcache(true, $payloadData['target']);
     echo "\r" . '#' . ($payloadI + 1) . '. ' . basename($payloadData['source']) . ' downloading ' . round(filesize($payloadData['target']) * 100 / $payloadData['size'], 2) . '%';
-}, function ($payloadI, $payloadData, $payloadResult) {
+}, function (Worker $worker, $payloadI, $payloadData, $payloadResult) {
     echo "\r" . '#' . ($payloadI + 1) . '. ' . basename($payloadData['source']) . ' successfully downloaded' . PHP_EOL;
     return true;
 });

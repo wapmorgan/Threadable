@@ -91,7 +91,7 @@ class Worker
     /**
      * Stops a worker and ends the process
      * @param boolean $wait If true, this method will hold execution till the process end
-     * @return null|boolean Null, if worker is not active. False, if signal can't be sent to worker.
+     * @return boolean Null, if worker is not active. False, if signal can't be sent to worker.
      * True, if signal sent OR signal sent and worker terminated (if $wait = true).
      */
     public function stop($wait = false)
@@ -117,7 +117,7 @@ class Worker
     /**
      * Stops a worker and kills the process
      * @param boolean $wait If true, this method will hold execution till the process end
-     * @return null|boolean Null, if worker is not active. False, if signal can't be sent to worker.
+     * @return boolean Null, if worker is not active. False, if signal can't be sent to worker.
      * True, if signal sent OR signal sent and worker terminated (if $wait = true).
      */
     public function kill($wait = false)
@@ -227,6 +227,14 @@ class Worker
     {
         return $this->pid;
     }
+
+	/**
+	 * @return int
+	 */
+	public function getCurrentPayload()
+	{
+		return $this->reportedPayloadsCounter;
+	}
 
     ///
     /// Child methods below only

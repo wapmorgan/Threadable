@@ -4,6 +4,8 @@ namespace wapmorgan\Threadable;
 
 class BackgroundWork
 {
+	const BY_CPU_NUMBER = -1;
+
     /**
      * @param Worker $worker
      * @param array $payloads An array of all payloads to worker
@@ -28,12 +30,12 @@ class BackgroundWork
             // worker done a job
             if (($payload_result = $worker->checkForFinish()) !== null) {
                 if ($onPayloadFinishCallback !== null)
-                    $result = call_user_func($onPayloadFinishCallback, key($payloads), current($payloads), $payload_result[1]) && $result;
+                    $result = call_user_func($onPayloadFinishCallback, $worker, key($payloads), current($payloads), $payload_result[1]) && $result;
                 else
                     $result = (boolean)$payload_result[1] && $result;
                 next($payloads);
             } else
-                call_user_func($payloadHandlingCallback, key($payloads), current($payloads));
+                call_user_func($payloadHandlingCallback, $worker, key($payloads), current($payloads));
 
             usleep($sleepMicroTime);
         }
@@ -43,56 +45,75 @@ class BackgroundWork
         return $result;
     }
 
-//    /**
-//     * @param Worker $worker
-//     * @param array $payloads An array of all payloads to worker
-//     * @param null $payloadHandlingCallback
-//     * @param callable|null $onPayloadFinishCallback Callback that should be called every time one payload is fully handled with worker output.
-//     *                      Also, this callback should return either true or false to indicate that work done right.
-//     *                      This affects result of doInBackground() call.
-//     * @param int $sleepMicroTime Time between checks for worker state (in milliseconds)
-//     * @return bool True if all payloads successfully handled.
-//     * @throws \Exception
-//     */
-//    public static function doInBackgroundParallel(Worker $worker, array $payloads, $payloadHandlingCallback = null,
-//                                          $onPayloadFinishCallback = null, $sleepMicroTime = 1000)
-//    {
-//        $workers_pool = new WorkersPool($worker);
-//        $workers_pool->setPoolSize(4);
-//
-//        $dispatched_payloads = [];
-//        $current_payloads = [];
-//
-//        $result = true;
-//        $last_payload = 0;
-//
-//        $workers_pool->registerOnPayloadFinishCallback(function (Worker $worker, array $payloadResult)
-//        use ($current_payloads, $onPayloadFinishCallback, $payloads, &$result) {
-//            $result = call_user_func($onPayloadFinishCallback, $current_payloads[$worker->getPid()], $payloads[$current_payloads[$worker->getPid()]], $payloadResult) && $result;
-//            unset($current_payloads[$worker->getPid()]);
-//        });
-//
-//        while (count($dispatched_payloads) < count($payloads) && $workers_pool->countRunningWorkers() > 0) {
-//
-//            if (count($dispatched_payloads) < count($payloads) && $workers_pool->countIdleWorkers() > 0) {
-//                for ($i = $last_payload; $i < count($payloads); $i++) {
-//                    if (($dispatch_result = $workers_pool->sendData($payloads[$i])) === null)
-//                        continue;
-//                    else {
-//                        $dispatched_payloads[$i] = $dispatch_result;
-//                        $current_payloads[$worker->getPid()] = $i;
-//                        $last_payload = $i;
-//                    }
-//                }
-//            }
-//
-//            call_user_func($payloadHandlingCallback, key($payloads), current($payloads));
-//
-//            usleep($sleepMicroTime);
-//        }
-//
-//        $workers_pool->waitToFinish();
-//
-//        return $result;
-//    }
+	/**
+	 * @param Worker $worker
+	 * @param array $payloads An array of all payloads to worker
+	 * @param null $payloadHandlingCallback Callback that will be called every $sleepMicrotime seconds for every running worker at that monent.
+	 *                        Should have signature: callback(Worker $worker, $payloadNumber, $payload)
+	 * @param callable|null $onPayloadFinishCallback Callback that should be called every time one payload is fully handled with worker output.
+	 *                      Also, this callback should return either true or false to indicate that work done right.
+	 *                      This affects result of doInBackground() call.
+	 * @param int $sleepMicroTime Time between checks for worker state (in milliseconds)
+	 * @param int $poolSize Size of worker's pool. If one of BackgroundWork constants, will be calculated automatically.
+	 * @return bool True if all payloads successfully handled.
+	 */
+    public static function doInBackgroundParallel(Worker $worker, array $payloads, $payloadHandlingCallback = null,
+                                          $onPayloadFinishCallback = null, $sleepMicroTime = 1000, $poolSize = self::BY_CPU_NUMBER)
+    {
+        $workers_pool = new WorkersPool($worker);
+
+        if ($poolSize === self::BY_CPU_NUMBER) {
+        	if (($poolSize = self::getNumberOfCpuCores()) === false)
+        		$poolSize = 4;
+		}
+
+        $workers_pool->setPoolSize(4);
+        $workers_pool->enableDataOverhead();
+
+        // [payload_i][worker_pid] => payload_i_for_worker
+        $dispatched_payloads = [];
+        $current_payloads = [];
+
+        $result = true;
+
+        $workers_pool->registerOnPayloadFinishCallback(function (Worker $worker, array $payloadResult)
+        use ($current_payloads, $onPayloadFinishCallback, $payloads, &$result) {
+            $result = call_user_func($onPayloadFinishCallback, $worker, $current_payloads[$worker->getPid()], $payloads[$current_payloads[$worker->getPid()]], $payloadResult) && $result;
+            unset($current_payloads[$worker->getPid()]);
+        });
+
+		// if not all payloads dispatched and there's idle worker -> dispatch
+		if (count($dispatched_payloads) < count($payloads)/* && $workers_pool->countIdleWorkers() > 0*/) {
+			foreach ($payloads as $i => $payload) {
+				$dispatch_result = $workers_pool->sendData($payload);
+				$dispatched_payloads[$dispatch_result[0]->getPid()][$dispatch_result[1]] = $i;
+			}
+		}
+
+		// launch callback with running workers and their's payloads
+		while ($workers_pool->countRunningWorkers() > 0) {
+			if ($payloadHandlingCallback !== null) {
+				foreach ($workers_pool->getRunningWorkers() as $runningWorker) {
+					$worker_payload = $payloads[$dispatched_payloads[$runningWorker->getPid()][$runningWorker->getCurrentPayload()]];
+					call_user_func($payloadHandlingCallback, $runningWorker, $worker_payload, $payloads[$worker_payload]);
+				}
+			}
+
+            usleep($sleepMicroTime);
+        }
+
+        return $result;
+    }
+
+	/**
+	 * @return int|boolean Number of cpu cores or false
+	 */
+	protected static function getNumberOfCpuCores()
+	{
+		exec('grep \'cpu cores\' /proc/cpuinfo', $output, $commandResult);
+		if ($commandResult !== 0)
+			return false;
+
+		return (int)trim(strstr(':', $output[0]), ': ');
+	}
 }

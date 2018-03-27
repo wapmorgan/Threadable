@@ -6,7 +6,7 @@ require_once __DIR__.'/../vendor/autoload.php';
 
 class CpuEatingWorker extends Worker
 {
-    public function onPayload(array $payload)
+    public function onPayload($payload)
     {
         echo 'new iteration '.$payload['i'].PHP_EOL;
         $till = microtime(true) + 5;

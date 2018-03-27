@@ -136,6 +136,19 @@ class WorkersPool
         return $i;
     }
 
+	/**
+	 * @return Worker[]
+	 */
+	public function getRunningWorkers()
+	{
+		$workers = [];
+		foreach ($this->workers as $worker) {
+			if ($worker->state == Worker::RUNNING)
+				$workers[] = $worker;
+		}
+		return $workers;
+	}
+
     /**
      * @return $this
      */
@@ -157,7 +170,7 @@ class WorkersPool
     /**
      * @param $data
      * @param bool $wait
-     * @return array|null
+     * @return array|null Returns array with Worker object and number of payload in worker's queue
      * @throws Exception
      */
     public function sendData($data, $wait = false)
