@@ -10,10 +10,10 @@
             "role": "developer"
         }
     ],
-    "require": {
-        "ext-posix": "*",
-        "ext-pcntl": "*",
-        "ext-sockets": "*"
+    "suggest": {
+        "ext-posix": "For real multi-threading",
+        "ext-pcntl": "For real multi-threading",
+        "ext-sockets": "For real multi-threading"
     },
     "require-dev": {
         "phpunit/phpunit": "~4.8"
