@@ -7,6 +7,9 @@ All you need to have installed:
 - _posix_
 - _sockets_
 
+This library can also work in simulation mode, where no actual forking performs. All work is done in one main thread.
+This mode enables if **pnctl** extension is not available or when you specify it in `Worker` constructor.
+
 [![Composer package](http://composer.network/badge/wapmorgan/threadable)](https://packagist.org/packages/wapmorgan/threadable)
 [![Latest Stable Version](https://poser.pugx.org/wapmorgan/threadable/v/stable)](https://packagist.org/packages/wapmorgan/threadable)
 [![Latest Unstable Version](https://poser.pugx.org/wapmorgan/threadable/v/unstable)](https://packagist.org/packages/wapmorgan/threadable)
@@ -217,7 +220,9 @@ foreach ($file_sources as $file_to_download) {
 ```php
 // construct and start new worker
 $worker = new DownloadWorker();
-$worker->start();
+// or if you want to simulate forking
+$worker = new DownloadWorker(true);
+
 // add files to work queue
 foreach ($files as $file) {
     echo 'Enqueuing '.$file[0].' with size '.$file[1].PHP_EOL;

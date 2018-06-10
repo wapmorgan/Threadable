@@ -4,17 +4,31 @@ namespace wapmorgan\Threadable;
 /**
  * Class providing basic thread functionality
  */
-class Worker
+class Worker extends ForkingThread
 {
-    use Threadable;
-
     const RUNNING = 1;
     const IDLE = 2;
     const TERMINATING = 3;
     const TERMINATED = 4;
 
-    // shared preferences
+	/**
+	 * @var bool If multi-threading simulation enabled
+	 * Automatically enables when pcntl extension is not supported
+	 */
+    protected $simulation = false;
+	/**
+	 * @var array Buffer for payload result when simulation is enabled
+	 */
+	protected $simulationBuffer = [];
+
+	/**
+	 * @var bool Whether child should send signals when it's done
+	 */
     protected $useSignals = false;
+
+	/**
+	 * @var bool Whether child should stop thread when destructing object
+	 */
     protected $selfManaged = true;
 
     // parent properties
@@ -37,7 +51,6 @@ class Worker
     protected $reportedPayloadsCounter = 0;
 
     // child properties
-
     /** @var int Id of parent process */
     protected $parentPid;
     /** @var resource Socket to parent process */
@@ -46,15 +59,26 @@ class Worker
     /** @var bool Indicator that SIGTERM has been received */
     protected $termAccepted = false;
 
-    /** @var int Time between checks for new payload from parent */
-    public $checkMicroTime = 100000;
+    /** @var int Time in microseconds between checks for new payload from parent */
+    public $checkMicroTime = 10000;
 
-    /**
-     * Configures worker
-     */
-    public function __construct()
+	/**
+	 * Configures worker
+	 * @param bool $simulation
+	 */
+    public function __construct($simulation = false)
     {
+    	if ($simulation || !self::supportsForking())
+    		$this->simulation = true;
     }
+
+	/**
+	 * @return bool
+	 */
+	public function isSimulated()
+	{
+		return $this->simulation;
+	}
 
     /**
      * Disables self-management. Use only if you manage workers via WorkersPool.
@@ -74,18 +98,22 @@ class Worker
     }
 
     /**
-     * Starts a worker and begins listening for incoming payload
+     * Starts a worker and begins listening for incoming payload.
+	 * This method should not be invoked when new object is constructing
+	 * because a Worker can be cloned before starting working.
      * @throws \Exception
      */
     public function start()
     {
-        $sockets = [];
-        socket_create_pair(AF_UNIX, SOCK_STREAM, 0, $sockets);
-        $pid = getmypid();
+    	if (!$this->simulation) {
+			$sockets = [];
+			socket_create_pair(AF_UNIX, SOCK_STREAM, 0, $sockets);
+			$pid = getmypid();
 
-        $this->pid = $this->fork([$this, 'onWorkerStart'], [$sockets[1], $pid]);
-        $this->toChild = $sockets[0];
-        socket_set_nonblock($this->toChild);
+			$this->pid = $this->forkThread([$this, 'onWorkerStart'], [$sockets[1], $pid]);
+			$this->toChild = $sockets[0];
+			socket_set_nonblock($this->toChild);
+		}
     }
 
     /**
@@ -96,6 +124,11 @@ class Worker
      */
     public function stop($wait = false)
     {
+    	if ($this->simulation) {
+			$this->state = self::TERMINATED;
+			return true;
+		}
+
         if (!is_dir('/proc/'.$this->pid))
             return null;
 
@@ -122,6 +155,11 @@ class Worker
      */
     public function kill($wait = false)
     {
+		if ($this->simulation) {
+			$this->state = self::TERMINATED;
+			return true;
+		}
+
         if (!is_dir('/proc/'.$this->pid))
             return null;
 
@@ -145,7 +183,7 @@ class Worker
      */
     public function isRunning()
     {
-        return $this->state == self::RUNNING;
+        return $this->state === self::RUNNING;
     }
 
     /**
@@ -153,7 +191,7 @@ class Worker
      */
     public function isIdle()
     {
-        return $this->state == self::IDLE;
+        return $this->state === self::IDLE;
     }
 
     /**
@@ -161,7 +199,7 @@ class Worker
      */
     public function isActive()
     {
-        return in_array($this->state, [self::RUNNING, self::IDLE]);
+        return in_array($this->state, [self::RUNNING, self::IDLE], true);
     }
 
     /**
@@ -169,14 +207,20 @@ class Worker
      */
     public function checkForFinish()
     {
+    	if ($this->simulation) {
+    		if ($this->reportedPayloadsCounter < count($this->simulationBuffer)) {
+				$payload_result = $this->simulationBuffer[$this->reportedPayloadsCounter];
+				return [$this->reportedPayloadsCounter++, $payload_result];
+			}
+			return null;
+		}
+
         if (strlen($msg_size_bytes = socket_read($this->toChild, 4)) === 4) {
             $data = unpack('N', $msg_size_bytes);
             $msg_size = $data[1];
-            // echo '[Finish] Msg size: '.$msg_size.PHP_EOL;
 
             $msg = socket_read($this->toChild, $msg_size);
             $data = unserialize($msg);
-            // echo '[Finish] Msg: '.print_r($msg, true).PHP_EOL;
             $this->remainingPayloadsCounter--;
 
             // mark as idle only if this last payload
@@ -193,8 +237,12 @@ class Worker
      */
     public function checkForTermination()
     {
+    	if ($this->simulation) {
+    		return null;
+		}
+
         $pid = pcntl_waitpid($this->pid, $status, WNOHANG);
-        if ($pid == $this->pid) {
+        if ($pid === $this->pid) {
             $this->state = self::TERMINATED;
             socket_close($this->toChild);
             return true;
@@ -202,20 +250,33 @@ class Worker
         return null;
     }
 
-    /**
-     * Sends payload to worker
-     * @param mixed $data
-     * @return int Serial number of payload
-     */
+	/**
+	 * Sends payload to worker
+	 * @param mixed $data
+	 * @return int Serial number of payload
+	 * @throws \Exception
+	 */
     public function sendPayload($data)
     {
+    	// if not forked yet
+		if (!$this->simulation && $this->pid === null) {
+			$this->start();
+		}
+
         $this->remainingPayloadsCounter++;
         $this->state = self::RUNNING;
 
-        $data = serialize($data);
-        // write payload to socket
-        socket_write($this->toChild, pack('N', strlen($data)));
-        socket_write($this->toChild, $data);
+        if ($this->simulation) {
+			$result = $this->sentPayloadsCounter++;
+			$this->simulationBuffer[$result] = $this->onPayload($data);
+			$this->state = self::IDLE;
+			return $result;
+		}
+
+		$data = serialize($data);
+		// write payload to socket
+		socket_write($this->toChild, pack('N', strlen($data)));
+		socket_write($this->toChild, $data);
 
         return $this->sentPayloadsCounter++;
     }

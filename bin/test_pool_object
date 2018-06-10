@@ -19,7 +19,7 @@ class ObjectWorker extends Worker
         $this->regenerate();
     }
 
-    public function onPayload(array $payload)
+    public function onPayload($payload)
     {
         $time = mt_rand(1, 5);
         echo 'this is an object worker '.$payload['n'].'; sleeping for '.$time.' sec'.PHP_EOL;

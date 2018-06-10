@@ -38,14 +38,13 @@ foreach ($file_sources as $file_to_download) {
 }
 
 $worker = new DownloadWorker();
-$worker->start();
 foreach ($files as $file) {
     echo 'Enqueuing '.$file['source'].' with size '.$file['size'].PHP_EOL;
     $worker->sendPayload($file);
 }
 
 while ($worker->state !== Worker::TERMINATED) {
-    if ($worker->state == Worker::RUNNING) {
+    if ($worker->state === Worker::RUNNING) {
         show_status($files);
         $worker->checkForFinish();
         usleep(5000000);
@@ -60,3 +59,17 @@ while ($worker->state !== Worker::TERMINATED) {
     }
 }
 echo 'Child terminated.'.PHP_EOL;
+
+foreach ($files as $file) {
+    echo 'Checked '.$file['target'].': ';
+    if (file_exists($file['target'])) {
+		$actual_size = filesize($file['target']);
+		if ($actual_size === $file['size'])
+			echo 'is ok' . PHP_EOL;
+		else
+			echo 'downloaded ' . $actual_size . ' of ' . $file['size'] . ' bytes' . PHP_EOL;
+		unlink($file['target']);
+    } else {
+        echo 'not downloaded'.PHP_EOL;
+    }
+}

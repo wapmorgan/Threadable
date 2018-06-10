@@ -28,5 +28,16 @@ $result = BackgroundWork::doInBackground(new DownloadWorker(), $files, function 
 if ($result)
     echo 'All files downloaded successfully'.PHP_EOL;
 
-foreach ($files as $file)
-    if (file_exists($file['target'])) unlink($file['target']);
+foreach ($files as $file) {
+	echo 'Checked '.$file['target'].': ';
+	if (file_exists($file['target'])) {
+		$actual_size = filesize($file['target']);
+		if ($actual_size === $file['size'])
+			echo 'is ok' . PHP_EOL;
+		else
+			echo 'downloaded ' . $actual_size . ' of ' . $file['size'] . ' bytes' . PHP_EOL;
+		unlink($file['target']);
+	} else {
+		echo 'not downloaded'.PHP_EOL;
+	}
+}

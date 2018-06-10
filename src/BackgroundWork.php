@@ -68,7 +68,7 @@ class BackgroundWork
         		$poolSize = 4;
 		}
 
-        $workers_pool->setPoolSize(4);
+        $workers_pool->setPoolSize($poolSize);
         $workers_pool->enableDataOverhead();
 
         // [payload_i][worker_pid] => payload_i_for_worker
@@ -112,10 +112,13 @@ class BackgroundWork
 	 */
 	protected static function getNumberOfCpuCores()
 	{
-		exec('grep \'cpu cores\' /proc/cpuinfo', $output, $commandResult);
-		if ($commandResult !== 0)
+		if (!file_exists('/proc/cpuinfo'))
 			return false;
 
-		return (int)trim(strstr(':', $output[0]), ': ');
+		exec('grep \'model name\' /proc/cpuinfo | wc -l', $output, $commandResult);
+		if ($commandResult !== 0)
+			return false;
+		$cores = (int)trim($output[0]);
+		return $cores > 0 ? $cores : false;
 	}
 }

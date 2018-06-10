@@ -4,10 +4,20 @@ use wapmorgan\Threadable\Worker;
 use wapmorgan\Threadable\WorkersPool;
 require_once __DIR__.'/../vendor/autoload.php';
 
-pcntl_signal(SIGUSR1, function () {});
-pcntl_signal(SIGUSR2, function () {});
+//pcntl_signal(SIGUSR1, function () {});
+//pcntl_signal(SIGUSR2, function () {});
 
+class CpuEatingWorker extends Worker
+{
+	public function onPayload($payload)
+	{
+		echo 'new iteration '.PHP_EOL;
+		$till = microtime(true) + 5;
+		while (microtime(true) < $till) {
 
+		}
+	}
+}
 
 function waitUntilFinish(Worker $worker)
 {
@@ -22,7 +32,6 @@ function waitUntilFinish(Worker $worker)
 }
 
 $worker = new CpuEatingWorker();
-$worker->start();
 $worker->sendPayload([123]);
 $worker->sendPayload([456]);
 $worker->sendPayload([789]);

@@ -27,8 +27,9 @@ class WorkersPool
     /** @var string Worker class name */
     protected $class;
 
-    /** @var object Worker object */
+    /** @var Worker Worker object */
     protected $object;
+
     /** @var int Current size of pool. Used in setPollSize() */
     protected $currentSize = 0;
 
@@ -72,9 +73,11 @@ class WorkersPool
         if ($this->masterThreadId === null)
             $this->masterThreadId = getmypid();
 
-        pcntl_signal(SIGUSR2, [$this, 'onSigUsr2']);
-        pcntl_signal(SIGUSR1, [$this, 'onSigUsr1']);
-        pcntl_signal(SIGCHLD, [$this, 'onSigChld']);
+        if (($this->object !== null && !$this->object->isSimulated()) || ForkingThread::supportsForking()) {
+			pcntl_signal(SIGUSR2, [$this, 'onSigUsr2']);
+			pcntl_signal(SIGUSR1, [$this, 'onSigUsr1']);
+			pcntl_signal(SIGCHLD, [$this, 'onSigChld']);
+		}
     }
 
     /**
@@ -107,7 +110,7 @@ class WorkersPool
     {
         $i = 0;
         foreach ($this->workers as $worker) {
-            if (in_array($worker->state, [Worker::RUNNING, Worker::IDLE])) $i++;
+            if (in_array($worker->state, [Worker::RUNNING, Worker::IDLE], true)) $i++;
         }
         return $i;
     }
@@ -119,7 +122,7 @@ class WorkersPool
     {
         $i = 0;
         foreach ($this->workers as $worker) {
-            if ($worker->state == Worker::RUNNING) $i++;
+            if ($worker->state === Worker::RUNNING) $i++;
         }
         return $i;
     }
@@ -143,7 +146,7 @@ class WorkersPool
 	{
 		$workers = [];
 		foreach ($this->workers as $worker) {
-			if ($worker->state == Worker::RUNNING)
+			if ($worker->state === Worker::RUNNING)
 				$workers[] = $worker;
 		}
 		return $workers;
@@ -176,6 +179,8 @@ class WorkersPool
     public function sendData($data, $wait = false)
     {
         $this->checkSize(true);
+
+        // wait for any worker to get free
         if ($this->countIdleWorkers() === 0 && !$this->dataOverhead) {
             if (!$wait)
                 return null;
@@ -186,11 +191,18 @@ class WorkersPool
             }
         }
 
+        // deploy payload
         foreach ($this->workers as $i => $worker) {
-            if ($worker->state == Worker::IDLE) {
+            if ($worker->state === Worker::IDLE) {
                 if ($this->overheadCounters[$i] > 0)
                     $this->overheadCounters[$i] = 0;
-                return [$worker, $worker->sendPayload($data)];
+
+                if ($worker->isSimulated()) {
+					return [$worker, $worker->sendPayload($data)];
+				} else {
+					return [$worker, $worker->sendPayload($data)];
+				}
+
             }
         }
 
@@ -200,7 +212,12 @@ class WorkersPool
                 if ($this->workers[$i]->isActive()) {
                     // echo 'Sending overhead data to '.$this->workers[$i]->getPid().PHP_EOL;
                     $this->overheadCounters[$i]++;
-                    return [$this->workers[$i], $this->workers[$i]->sendPayload($data)];
+
+                    if ($worker->isSimulated()) {
+						return [$this->workers[$i], $this->workers[$i]->sendPayload($data)];
+					} else {
+						return [$this->workers[$i], $this->workers[$i]->sendPayload($data)];
+					}
                 }
             }
         }
@@ -240,8 +257,7 @@ class WorkersPool
     {
         // echo 'SIGUSR2'.PHP_EOL;
         foreach ($this->workers as $worker) {
-            if ($worker->checkForTermination())
-                echo 'Terminated '.$worker->getPid().PHP_EOL;
+            $worker->checkForTermination();
         }
     }
 
@@ -261,7 +277,7 @@ class WorkersPool
      */
     protected function checkSize($waitIfNeeded = false)
     {
-        if ($this->newSize == $this->currentSize)
+        if ($this->newSize === $this->currentSize)
             return true;
 
         // just emit new workers
@@ -284,12 +300,12 @@ class WorkersPool
                 $states = [];
                 foreach ($this->workers as $i => $worker) {
                     $states[$worker->getPid()] = $worker->state;
-                    if ($worker->state == Worker::IDLE) {
+                    if ($worker->state === Worker::IDLE) {
                         // echo 'Stopping worker '.$i.PHP_EOL;
                         $terminating++;
                         $worker->stop();
                     }
-                    else if ($worker->state == Worker::TERMINATED) {
+                    else if ($worker->state === Worker::TERMINATED) {
                         // echo 'Terminated worker '.$i.PHP_EOL;
                         $terminating--;
                         $done++;

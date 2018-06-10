@@ -4,8 +4,8 @@ use wapmorgan\Threadable\Worker;
 use wapmorgan\Threadable\WorkersPool;
 require_once __DIR__.'/../vendor/autoload.php';
 
-pcntl_signal(SIGUSR1, function () {});
-pcntl_signal(SIGUSR2, function () {});
+//pcntl_signal(SIGUSR1, function () {});
+//pcntl_signal(SIGUSR2, function () {});
 
 function waitUntilFinish(Worker $worker)
 {
@@ -21,7 +21,6 @@ function waitUntilFinish(Worker $worker)
 }
 
 $worker = new Worker();
-$worker->start();
 $worker->sendPayload([123]);
 waitUntilFinish($worker);
 $worker->sendPayload([456]);

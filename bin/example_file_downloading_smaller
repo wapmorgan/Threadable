@@ -40,7 +40,7 @@ foreach ($file_sources as $file_to_download) {
 $worker = new DownloadWorker();
 $worker->start();
 foreach ($files as $file) {
-    echo 'Enqueuing '.$file['source'].' with size '.$file['target'].PHP_EOL;
+    echo 'Enqueuing '.$file['source'].' with size '.$file['size'].PHP_EOL;
     $worker->sendPayload($file);
 }
 
@@ -50,3 +50,17 @@ while ($worker->state == Worker::RUNNING) {
     usleep(500000);
 }
 $worker->stop(true);
+
+foreach ($files as $file) {
+	echo 'Checked '.$file['target'].': ';
+	if (file_exists($file['target'])) {
+		$actual_size = filesize($file['target']);
+		if ($actual_size === $file['size'])
+			echo 'is ok' . PHP_EOL;
+		else
+			echo 'downloaded ' . $actual_size . ' of ' . $file['size'] . ' bytes' . PHP_EOL;
+		unlink($file['target']);
+	} else {
+		echo 'not downloaded'.PHP_EOL;
+	}
+}

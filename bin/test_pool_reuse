@@ -6,7 +6,7 @@ require_once __DIR__.'/../vendor/autoload.php';
 
 class SimpleWorkerWithVariableDelay extends Worker
 {
-    public function onPayload(array $payload)
+    public function onPayload($payload)
     {
         echo getmypid().' is sleeping for '.$payload['seconds'].' sec [iteration '.$payload['i'].']'.PHP_EOL;
         sleep($payload['seconds'] * 2);
