@@ -5,7 +5,7 @@ require_once dirname(__DIR__).'/vendor/autoload.php';
 
 class SimpleWorker extends Worker
 {
-    public function onPayload(array $data)
+    public function onPayload($data)
     {
         sleep($data['timeout']);
         return $data['timeout'] * 2;

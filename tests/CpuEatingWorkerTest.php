@@ -6,7 +6,7 @@ require_once dirname(__DIR__).'/vendor/autoload.php';
 
 class CpuEatingWorker extends Worker
 {
-    public function onPayload(array $data)
+    public function onPayload($data)
     {
         $till = microtime(true) + 5;
         while (microtime(true) < $till) {
