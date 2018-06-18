@@ -1,13 +1,5 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: wapmo
- * Date: 10.06.2018
- * Time: 16:20
- */
-
 namespace wapmorgan\Threadable;
-
 
 use Exception;
 

@@ -4,7 +4,7 @@ namespace wapmorgan\Threadable;
 /**
  * Class providing basic thread functionality
  */
-class Worker extends ForkingThread
+abstract class Worker extends ForkingThread
 {
     const RUNNING = 1;
     const IDLE = 2;
@@ -352,12 +352,9 @@ class Worker extends ForkingThread
 
     /**
      * The main handler and work executor in worker. Accepts all payload and should do all the work to process it.
+     * @return boolean
      */
-    public function onPayload($payload)
-    {
-        echo 'I\'m just a worker with pid '.getmypid().'. Got payload: '.print_r($payload, true).PHP_EOL;
-        return true;
-    }
+    abstract public function onPayload($payload);
 
 
     /**

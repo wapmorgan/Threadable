@@ -1,7 +1,6 @@
 <?php
 namespace wapmorgan\Threadable;
 
-
 class BackgroundWork
 {
 	const BY_CPU_NUMBER = -1;

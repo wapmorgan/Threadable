@@ -418,7 +418,17 @@ As you've seen in examples, we created a downloading worker. But there is no nee
 - Description: downloads remote file and saves it on local server.
 - Payload (array):
     - `source` - remote file url
-    - `targe` - local file path
+    - `target` - local file path
+
+## ExtractWorker
+
+Zip-archives extractor.
+
+- Full path: `wapmorgan\Threadable\ExtractWorker`
+- Description: extracts given zip archive to a folder
+- Payload (array):
+    - `archive` - archive filename
+    - `output` - output directory
 
 # Use cases
 
