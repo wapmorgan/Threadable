@@ -47,6 +47,6 @@ class DownloadWorker extends Worker
             }
         }
 
-        throw new Exception('Can not determine size of remote file');
+        throw new Exception('Can not determine size of remote file '.$path);
     }
 }
