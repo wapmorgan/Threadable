@@ -11,15 +11,19 @@ $files = [];
 foreach ([
     'https://github.com/symfony/symfony/archive/v4.1.2.zip',
     'http://hosting-obzo-ru.1gb.ru/hosting-obzor.ru.zip',
+    'https://github.com/atom/atom/releases/download/v1.29.0-beta2/atom-windows.zip',
+    'https://github.com/electron/electron/releases/download/v3.0.0-beta.3/chromedriver-v3.0.0-beta.3-win32-x64.zip',
 ] as $file_to_download) {
     $files[$file_to_download] = [
         'source' => $file_to_download,
         'size' => DownloadWorker::getRemoteFileSize($file_to_download),
-        'target' => tempnam(sys_get_temp_dir(), 'thrd_test'),
+        'target' => ($target = tempnam(sys_get_temp_dir(), 'thrd_test')),
+        'archive' => $target,
+        'output' => __DIR__.'/output/',
     ];
 }
 
-function printFilesStatus(array $files)
+function printDownloadStatus(array $files)
 {
     $downloaded_files = 0;
     $total_percent = 0;
@@ -36,38 +40,11 @@ function printFilesStatus(array $files)
         $downloaded_size += $file['size'] * ($file['percent']/100);
     }
 
-
     if ($downloaded_files === $total_files)
-        return null;
-
-    echo "\r".'[ Downloaded '.$downloaded_files.' of '.$total_files.' ('.floor($downloaded_size / $total_size * 100).'%)]';
+        echo "\r".'[ Downloaded '.$downloaded_files.' of '.$total_files.' ('.floor($downloaded_size / $total_size * 100).'%)]';
+    else
+        echo "\r".'[ Downloaded '.$downloaded_files.' of '.$total_files.' ('.floor($downloaded_size / $total_size * 100).'%)]';
 }
-
-$result = BackgroundWork::doInBackgroundParallel(new DownloadWorker(), $files,
-    function (Worker $worker, $payloadI, $payloadData) use (&$files) {
-        clearstatcache(true, $payloadData['target']);
-        $files[$payloadData['source']]['percent'] = floor(filesize($payloadData['target']) * 100 / $payloadData['size']);
-        printFilesStatus($files);
-    },
-    function (Worker $worker, $payloadI, $payloadData, $payloadResult) use (&$files) {
-        $files[$payloadData['source']]['percent'] = 100;
-        return true;
-    }
-);
-
-echo PHP_EOL;
-
-if (!$result)
-    exit('Something went wrong');
-
-echo 'All files downloaded successfully'.PHP_EOL;
-
-foreach ($files as $key => $file_to_download) {
-    $files[$key]['archive'] = $files[$key]['target'];
-    $files[$key]['output'] = sys_get_temp_dir();
-}
-
-$start_time = time();
 
 function printExtractStatus(array $files, $start_time)
 {
@@ -81,19 +58,36 @@ function printExtractStatus(array $files, $start_time)
     echo "\r".'[ Exracted '.$extracted_files.' of '.$total_files.' ('.(time() - $start_time).' sec)]';
 }
 
+$result = BackgroundWork::doInBackgroundParallel(new DownloadWorker(), $files,
+    function (Worker $worker, $payloadI, $payloadData) use (&$files) {
+        clearstatcache(true, $payloadData['target']);
+        $files[$payloadData['source']]['percent'] = floor(filesize($payloadData['target']) * 100 / $payloadData['size']);
+        printDownloadStatus($files);
+    },
+    function (Worker $worker, $payloadI, $payloadData, $payloadResult) use (&$files) {
+        $files[$payloadData['source']]['percent'] = 100;
+        printDownloadStatus($files);
+        return true;
+    }
+);
+echo PHP_EOL;
+if (!$result)
+    exit('Something went wrong');
+echo 'All files downloaded successfully'.PHP_EOL;
+
+$start_time = time();
 $result = BackgroundWork::doInBackgroundParallel(new ExtractWorker(), $files,
     function (Worker $worker, $payloadI, $payloadData) use (&$files, $start_time) {
         printExtractStatus($files, $start_time);
     },
-    function (Worker $worker, $payloadI, $payloadData, $payloadResult) use (&$files) {
+    function (Worker $worker, $payloadI, $payloadData, $payloadResult) use (&$files, $start_time) {
         $files[$payloadData['source']]['extracted'] = true;
+        printExtractStatus($files, $start_time);
         return true;
     }
 );
 
 echo PHP_EOL;
-
 if (!$result)
     exit('Something went wrong');
-
 echo 'All files extracted successfully'.PHP_EOL;
