@@ -10,7 +10,6 @@ All you need to have installed:
 This library can also work in simulation mode, where no actual forking performs. All work is done in one main thread.
 This mode enables if **pnctl** extension is not available or when you specify it in `Worker` constructor.
 
-[![Composer package](http://composer.network/badge/wapmorgan/threadable)](https://packagist.org/packages/wapmorgan/threadable)
 [![Latest Stable Version](https://poser.pugx.org/wapmorgan/threadable/v/stable)](https://packagist.org/packages/wapmorgan/threadable)
 [![Latest Unstable Version](https://poser.pugx.org/wapmorgan/threadable/v/unstable)](https://packagist.org/packages/wapmorgan/threadable)
 [![License](https://poser.pugx.org/wapmorgan/threadable/license)](https://packagist.org/packages/wapmorgan/threadable)
